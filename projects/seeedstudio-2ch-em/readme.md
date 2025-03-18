@@ -77,7 +77,7 @@ This ESPHome configuration file implements the following features:
 
 ### **External Components**
 
-- Loads the `bl0939` component from `https://github.com/ackPeng/esphome.git` (`test` branch) for power monitoring. This branch extends the BL0939 current transformer mode to achieve higher precision in measurement. For more details about BL0939 current transformer mode, refer to the [documentation](https://www.belling.com.cn/media/file_object/bel_product/BL0939/guide/BL0939 Notes_V1.1_cn.pdf).
+- Loads the `bl0939` component from `https://github.com/ackPeng/esphome.git` (`test` branch) for power monitoring. This branch extends the BL0939 current transformer mode to achieve higher precision in measurement. For more details about BL0939 current transformer mode, refer to the [documentation](https://www.belling.com.cn/media/file_object/bel_product/BL0939/guide/BL0939%20Notes_V1.1_cn.pdf).
 
 ------
 
