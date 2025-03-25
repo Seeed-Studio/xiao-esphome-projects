@@ -3,14 +3,15 @@
 Welcome to the Xiao ESPHome Projects repository! This repository contains a collection of projects and examples using the Seeed Studio Xiao series with ESPHome. These projects demonstrate various capabilities and integrations of Xiao boards with ESPHome, making it easier for you to get started with IoT development.
 
 ## Table of Contents
-- [Introduction](#introduction)
-- [Getting Started](#getting-started)
-- [Projects](#projects)
-  - [Project 1: Sensor Monitoring](#project-1-sensor-monitoring)
-  - [Project 2: Home Automation](#project-2-home-automation)
-  - [Project 3: Environmental Data Logger](#project-3-environmental-data-logger)
-- [Contributing](#contributing)
-- [License](#license)
+- [Xiao ESPHome Projects](#xiao-esphome-projects)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Getting Started](#getting-started)
+  - [Projects](#projects)
+    - [Project 1: SeeedStudio-2CH-EM](#project-1-seeedstudio-2ch-em)
+    - [Project 2: Xiao-Soil-Moisture-Monitor](#project-2-xiao-soil-moisture-monitor)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Introduction
 This repository provides a wide range of projects that leverage the power of Xiao boards with ESPHome. Whether you are a beginner or an experienced developer, you will find useful examples and detailed instructions to help you build your own IoT applications.
