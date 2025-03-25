@@ -25,14 +25,13 @@ Follow the instructions in each project folder to set up and deploy the projects
 
 ## Projects
 
-### Project 1: Sensor Monitoring
-This project demonstrates how to use Xiao boards to monitor various sensors (e.g., temperature, humidity, light) and send the data to a home automation system.
+### Project 1: SeeedStudio-2CH-EM
 
-### Project 2: Home Automation
-Learn how to automate your home using Xiao boards and ESPHome. This project covers controlling lights, switches, and other appliances.
+SeeedStudio-2CH-EM is a dual-channel electricity meter based on bl0939, which can measure electrical parameters such as current, voltage, and power. SeeedStudio-2CH-EM adopts the current transformer solution of bl0939, which can provide higher electrical measurement accuracy.
 
-### Project 3: Environmental Data Logger
-Build an environmental data logger that collects data from multiple sensors and logs it to a cloud service for analysis.
+### Project 2: Xiao-Soil-Moisture-Monitor
+
+Xiao-Soil-Moisture-Monitor is used to monitor soil moisture and feedback the current status through a three-color LED. It supports manual calibration and automatic deep sleep to save energy. It is suitable for scenes such as flower pots and planting boxes.
 
 ## Contributing
 We welcome contributions from the community! If you have a project or improvement to share, please follow these steps:
