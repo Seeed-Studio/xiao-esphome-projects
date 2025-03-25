@@ -1,0 +1,382 @@
+esphome:
+  name: soil-moisture-monitor
+  friendly_name: XIAO Soil Moisture Monitor
+  platformio_options:
+    platform: https://github.com/mnowak32/platform-espressif32.git#boards/seeed_xiao_esp32c6
+  on_boot: 
+    then:
+      - light.turn_on:
+          id: pwm_led
+          brightness: 68%  # Set 68% duty cycle
+      - if:
+          condition:
+            lambda: 'return id(wifi_net_status) == 0;'
+          then:
+            - logger.log: "The device has not been connected to the network"
+            - deep_sleep.prevent: deep_sleep_control
+          else:
+            - logger.log: "The device has been networked"
+      - delay: 1s
+      - script.execute: check_moisture_once
+
+esp32:
+  board: seeed_xiao_esp32c6
+  variant: ESP32C6
+  flash_size: 4MB    
+  framework:
+    type: esp-idf
+    version: "5.2.1"
+    platform_version: 6.6.0
+    sdkconfig_options:
+      CONFIG_ESPTOOLPY_FLASHSIZE_4MB: y
+
+
+# LED Yellow	D10 18
+# LED RED	D9  20
+# LED Green	D8 19
+# button	D2  2
+
+# Battery	D0 0
+# PWM out	D3 21
+# Soil sensor	D1  1
+
+
+output:
+  - platform: gpio
+    pin: GPIO18
+    id: yellow_led_output
+
+  - platform: gpio
+    pin: GPIO19
+    id: green_led_output
+
+  - platform: gpio
+    pin: GPIO20
+    id: red_led_output
+
+  - platform: ledc
+    pin: GPIO21  
+    id: pwm_output
+    frequency: 200kHz  # Set the frequency to 200kHz
+    channel: 1
+
+
+light:
+  - platform: binary
+    id: yellow_led
+    output: yellow_led_output
+
+  - platform: binary
+    id: green_led
+    output: green_led_output
+
+  - platform: binary
+    id: red_led
+    output: red_led_output
+
+  - platform: monochromatic
+    output: pwm_output
+    id: pwm_led
+    name: "200kHz PWM"
+    internal: true
+    default_transition_length: 0s
+
+
+script:
+  - id: red_led_blink
+    mode: restart
+    then:
+      - repeat:
+          count: 10
+          then:
+            - light.turn_on: red_led
+            - delay: 500ms
+            - light.turn_off: red_led
+            - delay: 500ms
+
+  - id: green_led_blink
+    mode: restart
+    then:
+      - repeat:
+          count: 10
+          then:
+            - light.turn_on: green_led
+            - delay: 500ms
+            - light.turn_off: green_led
+            - delay: 500ms
+
+  - id: fast_blink_green
+    then:
+      - repeat:
+          count: 5
+          then:
+            - light.turn_on: green_led
+            - delay: 200ms
+            - light.turn_off: green_led
+            - delay: 200ms
+
+  - id: fast_blink_red
+    then:
+      - repeat:
+          count: 5
+          then:
+            - light.turn_on: red_led
+            - delay: 200ms
+            - light.turn_off: red_led
+            - delay: 200ms
+
+  - id: red_led_blink_3_times
+    then:
+      - repeat:
+          count: 1
+          then:
+            - light.turn_on: red_led
+            - delay: 1000ms
+            - light.turn_off: red_led
+            - delay: 100ms
+  - id: yellow_led_blink_3_times
+    then:
+      - repeat:
+          count: 1
+          then:
+            - light.turn_on: yellow_led
+            - delay: 1000ms
+            - light.turn_off: yellow_led
+            - delay: 100ms
+
+  - id: green_led_blink_3_times
+    then:
+      - repeat:
+          count: 1
+          then:
+            - light.turn_on: green_led
+            - delay: 1000ms
+            - light.turn_off: green_led
+            - delay: 100ms
+
+
+  - id: do_calibration
+    then:
+      - deep_sleep.prevent: deep_sleep_control
+      - logger.log: "Starting calibration"
+      - script.execute: red_led_blink
+      - delay: 10s
+      - script.stop: red_led_blink
+      - lambda: |-
+          float sum = 0;
+          for (int i = 0; i < 10; i++) {
+            sum += id(soil_sensor).state;
+            delay(200);
+          }
+          id(dry_value) = sum / 10.0;
+          ESP_LOGI("calibration", "Dry value: %f", id(dry_value));
+
+      - delay: 3s
+
+      - script.execute: green_led_blink
+      - delay: 10s
+      - script.stop: green_led_blink
+      - lambda: |-
+          float sum = 0;
+          for (int i = 0; i < 10; i++) {
+            sum += id(soil_sensor).state;
+            delay(200);
+          }
+          id(wet_value) = sum / 10.0;
+          ESP_LOGI("calibration", "Wet value: %f", id(wet_value));
+
+      - delay: 3s
+
+      - lambda: |-
+          if (id(dry_value) > id(wet_value)) {
+            ESP_LOGI("calibration", "Calibration success");
+            id(fast_blink_green).execute();
+          } else {
+            ESP_LOGW("calibration", "Calibration failed");
+            id(fast_blink_red).execute();
+          }
+
+      - delay: 3s
+      - script.execute: check_moisture_once
+      - delay: 3s
+      - deep_sleep.enter: deep_sleep_control
+
+  - id: check_moisture_once
+    then:
+      - lambda: |-
+          float moisture = id(soil_sensor).state;
+          ESP_LOGI("moisture_check", "Moisture reading: %f", moisture);
+          float Diff = id(dry_value) - id(wet_value);
+          ESP_LOGI("moisture_check", "Diff is: %f", Diff);
+          ESP_LOGI("moisture_check", "15 Diff is: %f",id(dry_value) - Diff * 0.15);
+          ESP_LOGI("moisture_check", "38 Diff is: %f",id(dry_value) - Diff * 0.38);
+          if (moisture >= (id(dry_value) - Diff * 0.15)) {  // The drier -> the higher the voltage
+            id(red_led_blink_3_times).execute();
+          } else if(moisture >  (id(dry_value) - Diff * 0.38) && moisture < (id(dry_value) - Diff * 0.15)){
+            id(yellow_led_blink_3_times).execute();
+          }else{
+            // moisture >  (id(dry_value) - Diff * 0.38)
+            id(green_led_blink_3_times).execute();
+          }
+
+
+
+globals:
+  - id: button_press_count
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: dry_value
+    type: float
+    restore_value: yes
+    initial_value: '2.75'
+  - id: wet_value
+    type: float
+    restore_value: yes
+    initial_value: '1.2'
+  - id: wifi_net_status
+    type: int
+    restore_value: yes
+    initial_value: "0"
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO2
+      mode: INPUT_PULLUP
+      allow_other_uses: true
+    id: my_button
+    on_press:
+      - lambda: |-
+          id(button_press_count)++;
+      - delay: 1s  # Delay 1 second to see if the button is pressed 3 times in a row
+      - lambda: |-
+          if (id(button_press_count) == 3) {
+            id(button_press_count) = 0;
+            id(do_calibration).execute();  // Trigger calibration process
+          } else if (id(button_press_count) == 1) {
+            id(button_press_count) = 0;
+            id(check_moisture_once).execute();  // Perform an ADC decision
+          } else {
+            id(button_press_count) = 0;
+          }
+      
+          
+# interval:
+#   - interval: 10s
+#     then:
+#       - script.execute: check_moisture_once
+
+            
+
+# Deep sleep configuration
+deep_sleep:
+  id: deep_sleep_control
+  run_duration: 9s  
+  sleep_duration: 60min  
+  wakeup_pin: 
+    number: GPIO2 
+    inverted: true
+    allow_other_uses: true
+    mode: INPUT_PULLUP
+
+
+external_components:
+  - source: github://pr#7942
+    components: [ "adc" ]
+
+  - source:
+      type: git
+      url: https://github.com/ackPeng/esphome.git
+      ref: api
+    components: [ api ]
+    refresh: 0s
+
+sensor:
+  - platform: adc
+    id: soil_sensor
+    pin: GPIO1
+    name: "Soil moisture measurement"
+    update_interval: 1s
+    internal: true
+    attenuation: 12db
+
+
+  - platform: adc
+    pin: GPIO0
+    name: "Battery measurement"
+    attenuation: 12db
+    # internal: true
+    filters:
+      - lambda: return (x / 1.8) * 100.0;
+    unit_of_measurement: "%"
+    update_interval: 5s
+
+text_sensor:
+  - platform: template
+    name: "Soil Moisture Status"   # ✅ Status displayed on the HA panel
+    id: soil_status
+    # internal: true
+    lambda: |-
+      float value = id(soil_sensor).state;
+      float Diff = id(dry_value) - id(wet_value);
+      if (value >= (id(dry_value) - Diff * 0.15)) {
+        //id(red_led_blink_3_times).execute();
+        return {"dry"};
+      } else if (value > (id(dry_value) - Diff * 0.38) && value < (id(dry_value) - Diff * 0.15)) {
+        //id(yellow_led_blink_3_times).execute();
+        return {"Moderate"};
+      } else {
+        //id(green_led_blink_3_times).execute();
+        return {"moist"};
+      }
+    update_interval: 5s
+    
+# Enable logging
+logger:
+
+improv_serial:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "YVjz+1l5zHXeyXFVinhaJkqh8RnG0gUVjaWniPEzCj4="
+
+
+
+
+ota:
+  - platform: esphome
+    password: "dcad8df988971d761bc72a30d7878a40"
+
+wifi:
+  # ssid: ""
+  # password: ""
+  on_connect:
+    then:
+      - if:
+          condition:
+            lambda: 'return id(wifi_net_status) == 0;'
+          then:
+            - logger.log: "The device has not been configured yet, but now it is successfully configured"
+            - globals.set:
+                id: wifi_net_status
+                value: '1'
+            - delay: 5s
+            - deep_sleep.allow: deep_sleep_control
+          else:
+            - logger.log: "The device has been networked"
+
+
+  on_disconnect:
+    then:
+      - globals.set:
+          id: wifi_net_status
+          value: '0'
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Xiao-Soil-Moisture-Monitor"
+    password: ""
+
+captive_portal:
+    
