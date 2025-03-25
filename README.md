@@ -43,7 +43,7 @@ We welcome contributions from the community! If you have a project or improvemen
 5. Create a new Pull Request
 
 ## License
-This repository is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
+Because [esphome](https://github.com/esphome/esphome) is licensed under the GPLv3 license, this project follows open source regulations and maintains the GPLv3 license. See the [LICENSE](LICENSE) file for more information.
 
 ---
 
