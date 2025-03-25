@@ -43,7 +43,7 @@ We welcome contributions from the community! If you have a project or improvemen
 5. Create a new Pull Request
 
 ## License
-Because [esphome](https://github.com/esphome/esphome) is licensed under the GPLv3 license, this project follows open source regulations and maintains the GPLv3 license. See the [LICENSE](LICENSE) file for more information.
+Since [esphome](https://github.com/esphome/esphome) is licensed under the GPLv3 license, this project adheres to open-source regulations and continues to maintain the GPLv3 license. For more details, please feel free to check the [LICENSE](LICENSE) file.
 
 ---
 
