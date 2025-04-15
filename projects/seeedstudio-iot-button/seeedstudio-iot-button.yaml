@@ -90,7 +90,12 @@ output:
 
 light_sleep:
   id: light_sleep_1
-  pin: 9
+  wakeup_pin: 9
+  on_wakeup:
+    then:
+      - light.turn_on: blue_led
+      - wifi.enable:
+      - logger.log: "Device woke up from light sleep"
 
 # Switch to control the LED strip power
 switch:
@@ -240,12 +245,7 @@ binary_sensor:
         then:
           - logger.log: "Single Short Clicked"
           - switch.toggle: virtual_toggle_1
-          - if:
-              condition:
-                light.is_off: blue_led
-              then:
-                - light.turn_on: blue_led
-                - wifi.enable:
+
       - timing:
           - ON for at most 200ms
           - OFF for at most 0.5s
@@ -254,12 +254,6 @@ binary_sensor:
         then:
           - logger.log: "Double Clicked"
           - switch.toggle: virtual_toggle_2
-          - if:
-              condition:
-                light.is_off: blue_led
-              then:
-                - light.turn_on: blue_led
-                - wifi.enable:
 
       - timing:
           - ON for 1s to 2.5s
@@ -267,12 +261,7 @@ binary_sensor:
         then:
           - logger.log: "Long Press"
           - switch.toggle: virtual_toggle_3
-          - if:
-              condition:
-                light.is_off: blue_led
-              then:
-                - light.turn_on: blue_led
-                - wifi.enable:
+
       - timing:
           - ON for at least 9s
         then:
@@ -280,4 +269,4 @@ binary_sensor:
           - light.turn_off: blue_led
           - wifi.disable:
           - light_sleep.enter: 
-              id: light_sleep_1
+                id: light_sleep_1
