@@ -19,9 +19,12 @@ esphome:
   
 
 external_components:
-- source:
-      type: local
-      path: /config/esphome/custom_components/light_sleep
+- source: 
+    type: git
+    url: https://github.com/Seeed-Studio/xiao-esphome-projects/tree/main/custom_components
+    ref: light_sleep
+    components: [light_sleep]
+
 
 esp32:
   board: esp32-c6-devkitc-1

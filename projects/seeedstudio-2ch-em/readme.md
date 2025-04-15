@@ -1,4 +1,4 @@
-# SeeedStudio-2CH-EM 
+# SeeedStudio-2CH-EM
 
 ## 1、Introduction
 
