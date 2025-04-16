@@ -20,11 +20,9 @@ void LightSleep::setup() {
     };
     gpio_config(&config);
     
-    // Enable GPIO wakeup (triggered by low level)
     gpio_wakeup_enable((gpio_num_t)gpio_num, GPIO_INTR_LOW_LEVEL);
     esp_sleep_enable_gpio_wakeup();
-    
-    // Wait for GPIO to stabilize in an inactive state (high level) to prevent immediate wakeup
+
     vTaskDelay(pdMS_TO_TICKS(100));
     while (gpio_get_level((gpio_num_t)gpio_num) == 0) {
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -39,13 +37,13 @@ void LightSleep::dump_config() {
 void LightSleep::enter_sleep() {
     int gpio_num = wakeup_pin_;
     
-    // Wait for GPIO to become high level (button released)
+    // Wait for the pin to be released (from low to high)
     if (gpio_get_level((gpio_num_t)gpio_num) == 0) {
         ESP_LOGD(TAG, "Waiting for wakeup pin to be released");
         while (gpio_get_level((gpio_num_t)gpio_num) == 0) {
-        vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(10));
         }
-        vTaskDelay(pdMS_TO_TICKS(50));  // Make sure the pin is stable
+        vTaskDelay(pdMS_TO_TICKS(50));  // Ensure the pin is stable
     }
     
     ESP_LOGI(TAG, "Entering light sleep");
@@ -54,9 +52,8 @@ void LightSleep::enter_sleep() {
     
     vTaskDelay(pdMS_TO_TICKS(50));
     for (auto *trigger : this->wakeup_triggers_) {
-    trigger->trigger();
+        trigger->trigger();
     }
-    
 }
 
 }  // namespace light_sleep

@@ -3,40 +3,46 @@
 #include "esphome/core/automation.h"
 #include <vector>
 
-namespace esphome {
-namespace light_sleep {
+namespace esphome
+{
+  namespace light_sleep
+  {
 
-class LightSleep : public Component {
- public:
-   void setup() override;
-   void dump_config() override;
-   float get_setup_priority() const override { return setup_priority::DATA; }
-   
-   void set_wakeup_pin(int pin) { wakeup_pin_ = pin; }
-   void enter_sleep();
-   void add_on_wakeup(Trigger<> *trigger) { this->wakeup_triggers_.push_back(trigger); }
+    class LightSleep : public Component
+    {
+    public:
+      void setup() override;
+      void dump_config() override;
+      float get_setup_priority() const override { return setup_priority::DATA; }
 
- protected:
-   int wakeup_pin_;
-   std::vector<Trigger<>*> wakeup_triggers_;
-};
+      void set_wakeup_pin(int pin) { wakeup_pin_ = pin; }
+      void enter_sleep();
+      void add_on_wakeup(Trigger<> *trigger) { this->wakeup_triggers_.push_back(trigger); }
 
-class LightSleepWakeupTrigger : public Trigger<>, public Parented<LightSleep> {
- public:
-   explicit LightSleepWakeupTrigger(LightSleep *parent) : Parented(parent) {
-     parent->add_on_wakeup(this);
-   }
-};
+    protected:
+      int wakeup_pin_;
+      std::vector<Trigger<> *> wakeup_triggers_;
+    };
 
-template<typename... Ts>
-class LightSleepEnterAction : public Action<Ts...> {
- public:
-   void set_parent(LightSleep *parent) { parent_ = parent; }
-   void play(Ts... x) override { parent_->enter_sleep(); }
+    class LightSleepWakeupTrigger : public Trigger<>, public Parented<LightSleep>
+    {
+    public:
+      explicit LightSleepWakeupTrigger(LightSleep *parent) : Parented(parent)
+      {
+        parent->add_on_wakeup(this);
+      }
+    };
 
- protected:
-   LightSleep *parent_;
-};
+    template <typename... Ts>
+    class LightSleepEnterAction : public Action<Ts...>
+    {
+    public:
+      void set_parent(LightSleep *parent) { parent_ = parent; }
+      void play(Ts...) override { parent_->enter_sleep(); }
 
-}  // namespace light_sleep
-}  // namespace esphome
+    protected:
+      LightSleep *parent_;
+    };
+
+  } // namespace light_sleep
+} // namespace esphome

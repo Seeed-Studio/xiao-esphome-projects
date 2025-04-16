@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
-from esphome.const import CONF_ID, CONF_PIN
+from esphome.const import CONF_ID, CONF_WAKEUP_PIN, CONF_TRIGGER_ID
 
 light_sleep_ns = cg.esphome_ns.namespace('light_sleep')
 LightSleep = light_sleep_ns.class_('LightSleep', cg.Component)
@@ -10,7 +10,7 @@ LightSleepWakeupTrigger = light_sleep_ns.class_('LightSleepWakeupTrigger', autom
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(LightSleep),
-    cv.Required(CONF_PIN): cv.int_range(0, 22),  # ESP32-C6 has GPIO0 to GPIO21
+    cv.Required(CONF_WAKEUP_PIN): cv.int_range(0, 22),  # ESP32-C6 has GPIO0 to GPIO21
     cv.Optional('on_wakeup'): automation.validate_automation({
         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(LightSleepWakeupTrigger),
     }),
@@ -19,17 +19,18 @@ CONFIG_SCHEMA = cv.Schema({
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
-    cg.add(var.set_pin_number(config[CONF_PIN]))
+    cg.add(var.set_wakeup_pin(config[CONF_WAKEUP_PIN]))
     
     if 'on_wakeup' in config:
         for conf in config['on_wakeup']:
-            trigger = cg.new_Pvariable(conf[CONF_ID], var) 
+            trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)  # Pass the parent component through the constructor
             await automation.build_automation(trigger, [], conf)
 
 LIGHT_SLEEP_ENTER_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.use_id(LightSleep)
 })
 
+# Register the light_sleep.enter action
 @automation.register_action('light_sleep.enter', LightSleepEnterAction, LIGHT_SLEEP_ENTER_SCHEMA)
 async def light_sleep_enter_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
