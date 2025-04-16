@@ -238,6 +238,9 @@ binary_sensor:
     pin:
       number: GPIO9
       inverted: True
+      mode:
+        input: True
+        pullup: True
     name: "SeeedStudio IoT Button"
     on_multi_click:
       - timing:
@@ -262,12 +265,23 @@ binary_sensor:
         then:
           - logger.log: "Long Press"
           - switch.toggle: virtual_toggle_3
-
-      - timing:
-          - ON for at least 9s
-        then:
-          - logger.log: "Entering Light Sleep Mode"
-          - light.turn_off: blue_led
-          - wifi.disable:
-          - light_sleep.enter: 
+    on_press:
+      - globals.set:
+          id: button_press_time
+          value: !lambda 'return millis();'
+    on_release:
+      - if:
+          condition:
+            lambda: 'return (millis() - id(button_press_time)) >= 9000;'
+          then:
+            - logger.log: "Entering Light Sleep Mode"
+            - light.turn_off: blue_led
+            - wifi.disable:
+            - light_sleep.enter:
                 id: light_sleep_1
+
+globals:
+  - id: button_press_time
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
