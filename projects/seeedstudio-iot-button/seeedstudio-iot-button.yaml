@@ -16,7 +16,7 @@ esphome:
     priority: -100.0
     then:
       - light.turn_on: blue_led
-      - delay: 2s  # 等待初始化
+      - delay: 5s  # wait initialization
       - logger.log: "Boot complete, entering light sleep"
       - light.turn_off: blue_led
       - wifi.disable:
@@ -75,17 +75,10 @@ wifi:
   on_connect:
     then:
       - logger.log: "WiFi Connected!"
-      # Show green color for 3 seconds then turn off to save power
-      - light.turn_on: blue_led
-      - delay: 1s
-      - light.turn_off: blue_led
 
   on_disconnect:
     then:
       - logger.log: "WiFi Disconnected!"
-      - light.turn_on: blue_led
-      - delay: 5s
-      - light.turn_off: blue_led
 
 captive_portal:
 
