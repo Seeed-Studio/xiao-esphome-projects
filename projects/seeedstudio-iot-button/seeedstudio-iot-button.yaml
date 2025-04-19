@@ -17,8 +17,6 @@ esphome:
       - light.turn_on: blue_led
       - delay: 5min  # Wait for initialization
       - logger.log: "Boot complete, entering light sleep"
-      - light.turn_off: blue_led
-      # - wifi.disable:
       - light_sleep.enter:
           id: light_sleep_1
 
@@ -89,7 +87,6 @@ wifi:
           effect: "Subtle Flicker"
       - delay: 1s
       - light.turn_off: rgb_led
-      # - light.turn_off: blue_led
 
   on_disconnect:
     then:
@@ -103,7 +100,6 @@ wifi:
           effect: "Subtle Flicker"
       - delay: 1s
       - light.turn_off: rgb_led
-      # - light.turn_on: blue_led
 
 captive_portal:
 
@@ -119,14 +115,21 @@ output:
 light_sleep:
   id: light_sleep_1
   wakeup_pin: 9
+  on_prepare_sleep:
+    then:
+      - logger.log: "Preparing to enter light sleep"
+      - light.turn_off: blue_led
+      - light.turn_off: rgb_led
   on_wakeup:
     then:
       - light.turn_on: blue_led
-      - wifi.enable:
       - logger.log: "Device woke up from light sleep"
       - globals.set:
           id: last_activity_time
           value: !lambda 'return millis();'
+
+deep_sleep:
+  id: deep_sleep_1
 
 # Switch to control the LED strip power
 switch:
@@ -327,8 +330,6 @@ binary_sensor:
             lambda: 'return (millis() - id(button_press_time)) >= 9000;'
           then:
             - logger.log: "Entering Light Sleep Mode"
-            - light.turn_off: blue_led
-            - wifi.disable:
             - light_sleep.enter:
                 id: light_sleep_1
 
@@ -350,7 +351,5 @@ interval:
             lambda: 'return (millis() - id(last_activity_time)) >= 120000;'
           then:
             - logger.log: "No activity for 2 minutes, entering light sleep"
-            - light.turn_off: blue_led
-            - wifi.disable:
             - light_sleep.enter:
                 id: light_sleep_1
