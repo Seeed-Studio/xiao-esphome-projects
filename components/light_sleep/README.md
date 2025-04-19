@@ -30,50 +30,48 @@ external_components:
       type: local
       path: /config/esphome/custom_components/light_sleep
 
+esphome:
+  name: iot-button
+
+api:
+wifi:
+  power_save_mode: LIGHT
+
 light_sleep:
-  id: light_sleep_1
+  id: sleep
   wakeup_pin: 9
-  on_wakeup:
-    then:
-      - light.turn_on: blue_led
-      - wifi.enable:
-      - logger.log: "Device woke up from light sleep"
+  on_prepare_sleep: # do something before sleep
+    - light.turn_on: led
+    - delay: 0.5s
+    - light.turn_off: led
+  on_wakeup: # do something after wake up
+    - light.turn_on: led
+    - logger.log: "Woke up from light sleep"
+
+output:
+  - platform: gpio
+    pin: GPIO2
+    id: led_output
+
+light:
+  - platform: binary
+    name: "LED"
+    output: led_output
+    id: led
 
 binary_sensor:
   - platform: gpio
-    pin:
-      number: GPIO9
-      inverted: True
-    name: "SeeedStudio IoT Button"
-    on_multi_click:
-      - timing:
-          - ON for at most 200ms
-          - OFF for at least 0.5s
-        then:
-          - logger.log: "Single Short Clicked"
-          - switch.toggle: virtual_toggle_1
-      - timing:
-          - ON for at most 200ms
-          - OFF for at most 0.5s
-          - ON for at most 200ms
-          - OFF for at least 0.2s
-        then:
-          - logger.log: "Double Clicked"
-          - switch.toggle: virtual_toggle_2
-      - timing:
-          - ON for 1s to 2.5s
-          - OFF for at least 0.5s
-        then:
-          - logger.log: "Long Press"
-          - switch.toggle: virtual_toggle_3
-      - timing:
-          - ON for at least 9s
-        then:
-          - logger.log: "Entering Light Sleep Mode"
-          - light.turn_off: blue_led
-          - wifi.disable:
-          - light_sleep.enter:
-              id: light_sleep_1
+    pin: GPIO9
+    name: "Button"
+    on_press:
+      - light_sleep.enter: 
+        id: sleep
+
+interval:
+  - interval: 60s
+    then:
+      - light_sleep.enter:
+        id: sleep
 ```
 
 ### Configuration Options
