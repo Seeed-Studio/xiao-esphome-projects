@@ -68,11 +68,13 @@ ota:
   - platform: esphome
 
 wifi:
-
+  ssid: " "
+  password: ""
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "seeedstudio-iot-button"
-  
+    ap_timeout: 10s
+
   # WiFi network status events
   on_connect:
     then:
@@ -91,15 +93,6 @@ wifi:
   on_disconnect:
     then:
       - logger.log: "WiFi Disconnected!"
-      - light.turn_on: 
-          id: rgb_led
-          brightness: 100%
-          red: 100%
-          green: 0%
-          blue: 0%
-          effect: "Subtle Flicker"
-      - delay: 1s
-      - light.turn_off: rgb_led
 
 captive_portal:
 
@@ -127,9 +120,6 @@ light_sleep:
       - globals.set:
           id: last_activity_time
           value: !lambda 'return millis();'
-
-deep_sleep:
-  id: deep_sleep_1
 
 # Switch to control the LED strip power
 switch:
@@ -293,23 +283,23 @@ binary_sensor:
     name: "SeeedStudio IoT Button"
     on_multi_click:
       - timing:
-          - ON for at most 200ms
+          - ON for at most 300ms
           - OFF for at least 0.5s
         then:
           - logger.log: "Single Short Clicked"
           - switch.toggle: virtual_toggle_1
 
       - timing:
-          - ON for at most 200ms
+          - ON for at most 300ms
           - OFF for at most 0.5s
-          - ON for at most 200ms
+          - ON for at most 300ms
           - OFF for at least 0.2s 
         then:
           - logger.log: "Double Clicked"
           - switch.toggle: virtual_toggle_2
 
       - timing:
-          - ON for 1s to 2.5s
+          - ON for 1s to 1.5s
           - OFF for at least 0.5s
         then:
           - logger.log: "Long Press"
@@ -327,7 +317,7 @@ binary_sensor:
           value: !lambda 'return millis();'
       - if:
           condition:
-            lambda: 'return (millis() - id(button_press_time)) >= 9000;'
+            lambda: 'return (millis() - id(button_press_time)) >= 5000;'
           then:
             - logger.log: "Entering Light Sleep Mode"
             - light_sleep.enter:
