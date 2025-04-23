@@ -340,7 +340,7 @@ sensor:
           if (x < 1.2) {
             return 0.0;
           }else if(x > 1.5){
-            return 1.0 * * 100.0;
+            return 1.0 * 100.0;
           }else {
             return ((x - 1.2) / (1.5 - 1.2)) * 100.0;
           } 
