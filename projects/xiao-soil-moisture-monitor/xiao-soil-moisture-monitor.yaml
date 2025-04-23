@@ -5,6 +5,8 @@ esphome:
     platform: https://github.com/mnowak32/platform-espressif32.git#boards/seeed_xiao_esp32c6
   on_boot: 
     then:
+      - output.turn_off: gpio_3_output
+      # - output.turn_on: gpio_14_output
       - light.turn_on:
           id: pwm_led
           brightness: 68%  # Set 68% duty cycle
@@ -12,12 +14,13 @@ esphome:
           condition:
             lambda: 'return id(wifi_net_status) == 0;'
           then:
-            - logger.log: "The device has not been connected to the network"
+            - logger.log: "The device has not been set to the network"
             - deep_sleep.prevent: deep_sleep_control
           else:
             - logger.log: "The device has been networked"
       - delay: 1s
       - script.execute: check_moisture_once
+
 
 esp32:
   board: seeed_xiao_esp32c6
@@ -58,7 +61,15 @@ output:
     pin: GPIO21  
     id: pwm_output
     frequency: 200kHz  # Set the frequency to 200kHz
-    channel: 1
+
+  - platform: gpio
+    pin: GPIO3
+    id: gpio_3_output
+
+
+
+
+
 
 
 light:
@@ -165,6 +176,7 @@ script:
       - lambda: |-
           float sum = 0;
           for (int i = 0; i < 10; i++) {
+            id(soil_sensor).update();
             sum += id(soil_sensor).state;
             delay(200);
           }
@@ -179,6 +191,7 @@ script:
       - lambda: |-
           float sum = 0;
           for (int i = 0; i < 10; i++) {
+            id(soil_sensor).update();
             sum += id(soil_sensor).state;
             delay(200);
           }
@@ -204,19 +217,26 @@ script:
   - id: check_moisture_once
     then:
       - lambda: |-
+          for(int i = 0; i < 10; i++){
+            id(soil_sensor).update();
+            delay(200);
+          }
           float moisture = id(soil_sensor).state;
           ESP_LOGI("moisture_check", "Moisture reading: %f", moisture);
           float Diff = id(dry_value) - id(wet_value);
           ESP_LOGI("moisture_check", "Diff is: %f", Diff);
-          ESP_LOGI("moisture_check", "15 Diff is: %f",id(dry_value) - Diff * 0.15);
-          ESP_LOGI("moisture_check", "38 Diff is: %f",id(dry_value) - Diff * 0.38);
-          if (moisture >= (id(dry_value) - Diff * 0.15)) {  // The drier -> the higher the voltage
+          ESP_LOGI("moisture_check", "ref_dry Diff is: %f",id(dry_value) - Diff * id(ref_dry));
+          ESP_LOGI("moisture_check", "ref_wet Diff is: %f",id(dry_value) - Diff * id(ref_wet));
+          if (moisture >= (id(dry_value) - Diff * id(ref_dry))) {  // The drier -> the higher the voltage
             id(red_led_blink_3_times).execute();
-          } else if(moisture >  (id(dry_value) - Diff * 0.38) && moisture < (id(dry_value) - Diff * 0.15)){
+            id(deep_sleep_control).set_sleep_duration(900000);
+          } else if(moisture >  (id(dry_value) - Diff * id(ref_wet)) && moisture < (id(dry_value) - Diff * id(ref_dry))){
             id(yellow_led_blink_3_times).execute();
+            id(deep_sleep_control).set_sleep_duration(3600000);
           }else{
-            // moisture >  (id(dry_value) - Diff * 0.38)
+            // moisture >  (id(dry_value) - Diff * id(ref_wet))
             id(green_led_blink_3_times).execute();
+            id(deep_sleep_control).set_sleep_duration(28800000);
           }
 
 
@@ -238,6 +258,14 @@ globals:
     type: int
     restore_value: yes
     initial_value: "0"
+  - id: ref_dry
+    type: float
+    restore_value: no
+    initial_value: "0.23"
+  - id: ref_wet
+    type: float
+    restore_value: no
+    initial_value: "0.58"
 
 binary_sensor:
   - platform: gpio
@@ -272,8 +300,8 @@ binary_sensor:
 # Deep sleep configuration
 deep_sleep:
   id: deep_sleep_control
-  run_duration: 9s  
-  sleep_duration: 60min  
+  run_duration: 120s  
+  sleep_duration: 180min  
   wakeup_pin: 
     number: GPIO2 
     inverted: true
@@ -297,7 +325,7 @@ sensor:
     id: soil_sensor
     pin: GPIO1
     name: "Soil moisture measurement"
-    update_interval: 1s
+    update_interval: 4s
     internal: true
     attenuation: 12db
 
@@ -307,31 +335,83 @@ sensor:
     name: "Battery measurement"
     attenuation: 12db
     # internal: true
-    filters:
-      - lambda: return (x / 1.8) * 100.0;
+    filters:                     # When the battery drops below 1V, it is dead.
+      - lambda: |-
+          if (x < 1.2) {
+            return 0.0;
+          }else if(x > 1.5){
+            return 1.0 * * 100.0;
+          }else {
+            return ((x - 1.2) / (1.5 - 1.2)) * 100.0;
+          } 
     unit_of_measurement: "%"
     update_interval: 5s
+    force_update: True
+
+  - platform: wifi_signal
+    name: "wifi singnal strength"
+    update_interval: 10s
+    
+# text_sensor:
+#   - platform: template
+#     name: "Soil Moisture Status"   # ✅ Status displayed on the HA panel
+#     id: soil_status
+#     # internal: true
+#     lambda: |-
+#       float value = id(soil_sensor).state;
+#       float Diff = id(dry_value) - id(wet_value);
+#       if (value >= (id(dry_value) - Diff * id(ref_dry))) {
+#         //id(red_led_blink_3_times).execute();
+#         return {"Dry"};
+#       } else if (value > (id(dry_value) - Diff * id(ref_wet)) && value < (id(dry_value) - Diff * id(ref_dry))) {
+#         //id(yellow_led_blink_3_times).execute();
+#         return {"Almost Dry"};
+#       } else {
+#         //id(green_led_blink_3_times).execute();
+#         return {"Normal Moisture"};
+#       }
+#     update_interval: 5s
 
 text_sensor:
   - platform: template
-    name: "Soil Moisture Status"   # ✅ Status displayed on the HA panel
+    name: "Soil Moisture Status"
     id: soil_status
-    # internal: true
     lambda: |-
       float value = id(soil_sensor).state;
       float Diff = id(dry_value) - id(wet_value);
-      if (value >= (id(dry_value) - Diff * 0.15)) {
-        //id(red_led_blink_3_times).execute();
-        return {"dry"};
-      } else if (value > (id(dry_value) - Diff * 0.38) && value < (id(dry_value) - Diff * 0.15)) {
-        //id(yellow_led_blink_3_times).execute();
-        return {"Moderate"};
+      if (value >= (id(dry_value) - Diff * id(ref_dry))) {
+        return {"Dry"};
+      } else if (value > (id(dry_value) - Diff * id(ref_wet)) && value < (id(dry_value) - Diff * id(ref_dry))) {
+        return {"Almost Dry"};
       } else {
-        //id(green_led_blink_3_times).execute();
-        return {"moist"};
+        return {"Normal Moisture"};
       }
-    update_interval: 5s
-    
+    update_interval: never  # 不让自动触发上报，我们自己控制
+
+interval:
+  - interval: 5s
+    then:
+      - text_sensor.template.publish:
+          id: soil_status
+          state: !lambda |-
+            return "";
+      - delay: 10ms
+      - text_sensor.template.publish:
+          id: soil_status
+          state: !lambda |-
+            float value = id(soil_sensor).state;
+            float Diff = id(dry_value) - id(wet_value);
+            if (value >= (id(dry_value) - Diff * id(ref_dry))) {
+              id(deep_sleep_control).set_sleep_duration(900000);
+              return "Dry";
+            } else if (value > (id(dry_value) - Diff * id(ref_wet)) && value < (id(dry_value) - Diff * id(ref_dry))) {
+              id(deep_sleep_control).set_sleep_duration(3600000);
+              return "Almost Dry";
+            } else {
+              id(deep_sleep_control).set_sleep_duration(28800000);
+              return "Normal Moisture";
+            }  
+
 # Enable logging
 logger:
 
@@ -339,8 +419,8 @@ improv_serial:
 
 # Enable Home Assistant API
 api:
-  encryption:
-    key: "YVjz+1l5zHXeyXFVinhaJkqh8RnG0gUVjaWniPEzCj4="
+  # encryption:
+    # key: "YVjz+1l5zHXeyXFVinhaJkqh8RnG0gUVjaWniPEzCj4="
 
 
 
@@ -350,8 +430,8 @@ ota:
     password: "dcad8df988971d761bc72a30d7878a40"
 
 wifi:
-  # ssid: ""
-  # password: ""
+  # ssid: "my68k"
+  # password: "1143590135"
   on_connect:
     then:
       - if:
