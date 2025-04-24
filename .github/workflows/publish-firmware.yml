@@ -17,6 +17,7 @@ jobs:
         projects/seeedstudio-2ch-em/seeedstudio-2ch-em.yaml
         projects/seeedstudio-iot-button/seeedstudio-iot-button.yaml
         projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml
+        combined-name: xiao-esphome-projects
       esphome-version: 2025.4.0
       #### Modify above here to match your project ####
 
