@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  repository_dispatch:
+    types: [trigger-workflow]
+  schedule:
+    - cron: '0 0 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Building ${{ matrix.file }} / ${{ matrix.esphome-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        #### Modify below here to match your project ####
+        file:
+          - projects\seeedstudio-2ch-em\seeedstudio-2ch-em
+          - projects\seeedstudio-iot-button\seeedstudio-iot-button
+          - projects\xiao-soil-moisture-monitor\xiao-soil-moisture-monitor
+        #### Modify above here to match your project ####
+
+        esphome-version:
+          - stable
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4.1.7
+      - name: ESPHome ${{ matrix.esphome-version }}
+        uses: esphome/build-action@v6.0.0
+        with:
+          yaml-file: ${{ matrix.file }}.yaml
+          version: ${{ matrix.esphome-version }}
+      - name: ESPHome ${{ matrix.esphome-version }} Factory
+        uses: esphome/build-action@v6.0.0
+        with:
+          yaml-file: ${{ matrix.file }}.factory.yaml
+          version: ${{ matrix.esphome-version }}
