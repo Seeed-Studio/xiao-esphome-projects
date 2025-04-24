@@ -6,7 +6,7 @@ Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects u
 
 - **Description**: Dual-channel electricity meter based on BL0939.
 - **Features**: High-precision measurement of current, voltage, and power.
-<esp-web-install-button manifest="firmware/xiao-esphome-projects.json"></esp-web-install-button>
+<esp-web-install-button manifest="firmware/seeedstudio-2ch-em.manifest.json"></esp-web-install-button>
 
 ## Xiao-Soil-Moisture-Monitor
 
