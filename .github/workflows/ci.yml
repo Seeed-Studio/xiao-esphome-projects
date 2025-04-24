@@ -22,9 +22,9 @@ jobs:
       matrix:
         #### Modify below here to match your project ####
         file:
-          - projects\seeedstudio-2ch-em\seeedstudio-2ch-em
-          - projects\seeedstudio-iot-button\seeedstudio-iot-button
-          - projects\xiao-soil-moisture-monitor\xiao-soil-moisture-monitor
+          - projects/seeedstudio-2ch-em/seeedstudio-2ch-em
+          - projects/seeedstudio-iot-button/seeedstudio-iot-button
+          - projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor
         #### Modify above here to match your project ####
 
         esphome-version:
