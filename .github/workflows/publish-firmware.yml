@@ -18,7 +18,6 @@ jobs:
         projects/seeedstudio-iot-button/seeedstudio-iot-button.yaml
         projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml
       esphome-version: 2025.4.0
-      combined-name: project-template
       #### Modify above here to match your project ####
 
       release-summary: ${{ github.event.release.body }}
