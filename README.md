@@ -1,5 +1,9 @@
 # Xiao ESPHome Projects
 
+> ## 🚀 Quick Firmware Installation
+> ### ✨ Visit our Web Installer: [https://gadgets.seeed.cc](https://gadgets.seeed.cc) ✨
+> Simply click the link to easily install firmware directly to your device!
+
 Welcome to the Xiao ESPHome Projects repository! This repository contains a collection of projects and examples using the Seeed Studio Xiao series with ESPHome. These projects demonstrate various capabilities and integrations of Xiao boards with ESPHome, making it easier for you to get started with IoT development.
 
 ## Table of Contents
@@ -12,6 +16,8 @@ Welcome to the Xiao ESPHome Projects repository! This repository contains a coll
     - [Project 1: SeeedStudio-2CH-EM](#project-1-seeedstudio-2ch-em)
     - [Project 2: Xiao-Soil-Moisture-Monitor](#project-2-xiao-soil-moisture-monitor)
     - [Project 3: SeeedStudio-IoT-Button](#project-3-seeedstudio-iot-button)
+  - [Installation](#installation)
+    - [📱 Web Installer - One-Click Firmware Installation](#-web-installer---one-click-firmware-installation)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -44,8 +50,14 @@ Xiao-Soil-Moisture-Monitor is used to monitor soil moisture and feedback the cur
 The Seeed Studio IoT Button is a multifunctional Internet of Things (IoT) device that can be seamlessly integrated with smart home systems. It supports both ESPHome and Zigbee connectivity options, enhancing its versatility and usability.
 
 ## Installation
+### 📱 Web Installer - One-Click Firmware Installation
 
-You can install the firmware directly to your device using the web installer available at the project's [GitHub Pages](https://seeed-studio.github.io/xiao-esphome-projects/) site.
+<div align="center">
+  <h3><a href="https://gadgets.seeed.cc">https://gadgets.seeed.cc</a></h3>
+  <p>👆 Click the link above to access our Web Installer 👆</p>
+  <p>No complex setup required - install firmware directly through your browser!</p>
+</div>
+
 
 ## Contributing
 

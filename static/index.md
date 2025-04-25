@@ -25,6 +25,6 @@ Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects u
 - Ensure your browser supports Web Serial (e.g., Chrome or Edge).
 - Connect your XIAO board to your computer via USB.
 - Click the install button for your desired project to flash the firmware.
-- For issues or feedback, visit our [GitHub repository](https://github.com/Seeed-Studio/xiao-esphome-projects) or open an issue.
+- For issues or feedback, visit our [GitHub repository](https://gadgets.seeed.cc/) or open an issue.
 
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
