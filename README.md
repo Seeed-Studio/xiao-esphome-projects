@@ -43,6 +43,10 @@ Xiao-Soil-Moisture-Monitor is used to monitor soil moisture and feedback the cur
 
 The Seeed Studio IoT Button is a multifunctional Internet of Things (IoT) device that can be seamlessly integrated with smart home systems. It supports both ESPHome and Zigbee connectivity options, enhancing its versatility and usability.
 
+## Installation
+
+You can install the firmware directly to your device using the web installer available at the project's [GitHub Pages](https://seeed-studio.github.io/xiao-esphome-projects/) site.
+
 ## Contributing
 
 We welcome contributions from the community! If you have a project or improvement to share, please follow these steps:
