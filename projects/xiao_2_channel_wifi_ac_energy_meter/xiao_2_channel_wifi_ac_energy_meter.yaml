@@ -1,5 +1,5 @@
 substitutions:
-  name: "xiao_2_channel_wifi_ac_energy_meter"
+  name: "wifi_ac_energy_meter"
   friendly_name: "XIAO 2 Channel Wi-Fi AC Energy Meter"
 
 esphome:
@@ -7,7 +7,7 @@ esphome:
   friendly_name: "${friendly_name}"
   name_add_mac_suffix: true
   project:
-    name: "xiao_2_channel_wifi_ac_energy_meter"
+    name: "xiao.2_channel_wifi_ac_energy_meter"
     version: "2.0"
   platformio_options:
     platform: https://github.com/mnowak32/platform-espressif32.git#boards/seeed_xiao_esp32c6
@@ -66,7 +66,7 @@ wifi:
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "xiao_2_channel_wifi_ac_energy_meter"
+    ssid: "xiao_wifi_ac_energy_meter"
 
 captive_portal:
 

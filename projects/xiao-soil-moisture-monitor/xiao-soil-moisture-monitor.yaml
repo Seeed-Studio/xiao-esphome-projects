@@ -1,5 +1,5 @@
 substitutions:
-  name: "xiao-soil-moisture-monitor"
+  name: "xiao-soil-moisture"
   friendly_name: "XIAO Soil Moisture Monitor"
 
 esphome:
@@ -7,7 +7,7 @@ esphome:
   friendly_name: "${friendly_name}"
   name_add_mac_suffix: true
   project:
-    name: "xiao-soil-moisture-monitor"
+    name: "xiao.soil-moisture-monitor"
     version: "1.0"
   platformio_options:
     platform: https://github.com/mnowak32/platform-espressif32.git#boards/seeed_xiao_esp32c6
