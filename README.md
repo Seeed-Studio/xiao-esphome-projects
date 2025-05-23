@@ -1,21 +1,21 @@
-# Xiao ESPHome Projects
+# XIAO ESPHome Projects
 
 > ## 🚀 Quick Firmware Installation
 > ### ✨ Visit our Web Installer: [https://gadgets.seeed.cc](https://gadgets.seeed.cc) ✨
 > Simply click the link to easily install firmware directly to your device!
 
-Welcome to the Xiao ESPHome Projects repository! This repository contains a collection of projects and examples using the Seeed Studio Xiao series with ESPHome. These projects demonstrate various capabilities and integrations of Xiao boards with ESPHome, making it easier for you to get started with IoT development.
+Welcome to the XIAO ESPHome Projects repository! This repository contains a collection of projects and examples using the Seeed Studio XIAO series with ESPHome. These projects demonstrate various capabilities and integrations of XIAO boards with ESPHome, making it easier for you to get started with IoT development.
 
 ## Table of Contents
 
-- [Xiao ESPHome Projects](#xiao-esphome-projects)
+- [XIAO ESPHome Projects](#xiao-esphome-projects)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Getting Started](#getting-started)
   - [Projects](#projects)
-    - [Project 1: SeeedStudio-2CH-EM](#project-1-seeedstudio-2ch-em)
-    - [Project 2: Xiao-Soil-Moisture-Monitor](#project-2-xiao-soil-moisture-monitor)
-    - [Project 3: SeeedStudio-IoT-Button](#project-3-seeedstudio-iot-button)
+    - [Project 1: XIAO 2 Channel Wi-Fi AC Energy Meter](#project-1-xiao-2-channel-wi-fi-ac-energy-meter)
+    - [Project 2: XIAO Soil Moisture Monitor](#project-2-xiao-soil-moisture-monitor)
+    - [Project 3: Seeed Studio IoT Button](#project-3-seeed-studio-iot-button)
   - [Installation](#installation)
     - [📱 Web Installer - One-Click Firmware Installation](#-web-installer---one-click-firmware-installation)
   - [Contributing](#contributing)
@@ -37,15 +37,15 @@ Follow the instructions in each project folder to set up and deploy the projects
 
 ## Projects
 
-### Project 1: SeeedStudio-2CH-EM
+### Project 1: XIAO 2 Channel Wi-Fi AC Energy Meter
 
-SeeedStudio-2CH-EM is a dual-channel electricity meter based on bl0939, which can measure electrical parameters such as current, voltage, and power. SeeedStudio-2CH-EM adopts the current transformer solution of bl0939, which can provide higher electrical measurement accuracy.
+XIAO 2 Channel Wi-Fi AC Energy Meter is a dual-channel electricity meter based on bl0939, which can measure electrical parameters such as current, voltage, and power. SeeedStudio-2CH-EM adopts the current transformer solution of bl0939, which can provide higher electrical measurement accuracy.
 
-### Project 2: Xiao-Soil-Moisture-Monitor
+### Project 2: XIAO Soil Moisture Monitor
 
-Xiao-Soil-Moisture-Monitor is used to monitor soil moisture and feedback the current status through a three-color LED. It supports manual calibration and automatic deep sleep to save energy. It is suitable for scenes such as flower pots and planting boxes.
+XIAO Soil Moisture Monitor is used to monitor soil moisture and feedback the current status through a three-color LED. It supports manual calibration and automatic deep sleep to save energy. It is suitable for scenes such as flower pots and planting boxes.
 
-### Project 3: SeeedStudio-IoT-Button
+### Project 3: Seeed Studio IoT Button
 
 The Seeed Studio IoT Button is a multifunctional Internet of Things (IoT) device that can be seamlessly integrated with smart home systems. It supports both ESPHome and Zigbee connectivity options, enhancing its versatility and usability.
 
