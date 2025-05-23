@@ -2,19 +2,19 @@
 
 Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects using Seeed Studio XIAO boards and ESPHome. Install firmware directly to your device via browser using the buttons below.
 
-## SeeedStudio-2CH-EM
+## XIAO 2 Channel Wi-Fi AC Energy Meter
 
 - **Description**: Dual-channel electricity meter based on BL0939.
 - **Features**: High-precision measurement of current, voltage, and power.
-<esp-web-install-button manifest="firmware/seeedstudio-2ch-em.manifest.json"></esp-web-install-button>
+<esp-web-install-button manifest="firmware/xiao_2_channel_wifi_ac_energy_meter.json"></esp-web-install-button>
 
-## Xiao-Soil-Moisture-Monitor
+## XIAO Soil Moisture Monitor
 
 - **Description**: Soil moisture monitor with three-color LED feedback.
 - **Features**: Supports manual calibration and energy-saving deep sleep, ideal for flower pots or planters.
 <esp-web-install-button manifest="firmware/xiao-soil-moisture-monitor.manifest.json"></esp-web-install-button>
 
-## SeeedStudio-IoT-Button
+## Seeed Studio IoT Button
 
 - **Description**: Multifunctional IoT button supporting ESPHome and Zigbee.
 - **Features**: Seamless integration with smart home systems.

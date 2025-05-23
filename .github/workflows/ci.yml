@@ -22,7 +22,7 @@ jobs:
       matrix:
         #### Modify below here to match your project ####
         file:
-          - projects/seeedstudio-2ch-em/seeedstudio-2ch-em
+          - projects/xiao_2_channel_wifi_ac_energy_meter/xiao_2_channel_wifi_ac_energy_meter
           - projects/seeedstudio-iot-button/seeedstudio-iot-button
           - projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor
         #### Modify above here to match your project ####

@@ -1,6 +1,14 @@
+substitutions:
+  name: "xiao_2_channel_wifi_ac_energy_meter"
+  friendly_name: "XIAO 2 Channel Wi-Fi AC Energy Meter"
+
 esphome:
-  name: seeedstudio-2ch-em
-  friendly_name: SeeedStudio-2CH-EM
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: true
+  project:
+    name: "xiao_2_channel_wifi_ac_energy_meter"
+    version: "2.0"
   platformio_options:
     platform: https://github.com/mnowak32/platform-espressif32.git#boards/seeed_xiao_esp32c6
   on_boot: 
@@ -11,7 +19,6 @@ esphome:
       # - light.turn_on: led_light
       # - delay: 10s  
       # - light.turn_off: led_staus
-
 
 output:
   - platform: gpio
@@ -27,10 +34,6 @@ light:
     name: "status LED"
     output: led_light
     restore_mode: ALWAYS_ON
-      
-
-
-
 
 esp32:
   board: seeed_xiao_esp32c6
@@ -49,11 +52,9 @@ logger:
 
 # Enable Home Assistant API
 api:
-  password: ""
 
 ota:
   - platform: esphome
-    password: ""
 
 wifi:
   # output_power: 20dB
@@ -65,15 +66,12 @@ wifi:
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "SeeedStudio-2CH-EM"
-    password: ""
+    ssid: "xiao_2_channel_wifi_ac_energy_meter"
 
 captive_portal:
 
 web_server:
   port: 80
-
-
 
 external_components:
   # use rtttl and dfplayer from ESPHome's dev branch in GitHub
@@ -82,10 +80,7 @@ external_components:
       url: https://github.com/ackPeng/esphome.git
       ref: test
     components: [ bl0939 ]
-    refresh: 0s
-
-debug:
-  
+    refresh: 0s  
 
 uart:
   tx_pin: GPIO16
@@ -112,8 +107,6 @@ sensor:
       name: 'BL0939 Energy 2'
     energy_total:
       name: 'BL0939 Energy Total'
-
-
 
     update_interval: 15s
     

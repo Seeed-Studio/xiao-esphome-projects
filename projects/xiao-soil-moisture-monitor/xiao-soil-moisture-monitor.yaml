@@ -1,6 +1,14 @@
+substitutions:
+  name: "xiao-soil-moisture-monitor"
+  friendly_name: "XIAO Soil Moisture Monitor"
+
 esphome:
-  name: soil-moisture-monitor
-  friendly_name: XIAO Soil Moisture Monitor
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: true
+  project:
+    name: "xiao-soil-moisture-monitor"
+    version: "1.0"
   platformio_options:
     platform: https://github.com/mnowak32/platform-espressif32.git#boards/seeed_xiao_esp32c6
   on_boot: 
@@ -65,12 +73,6 @@ output:
   - platform: gpio
     pin: GPIO3
     id: gpio_3_output
-
-
-
-
-
-
 
 light:
   - platform: binary
@@ -419,19 +421,11 @@ improv_serial:
 
 # Enable Home Assistant API
 api:
-  # encryption:
-    # key: "YVjz+1l5zHXeyXFVinhaJkqh8RnG0gUVjaWniPEzCj4="
-
-
-
 
 ota:
   - platform: esphome
-    password: "dcad8df988971d761bc72a30d7878a40"
 
 wifi:
-  # ssid: "my68k"
-  # password: "1143590135"
   on_connect:
     then:
       - if:
@@ -455,8 +449,7 @@ wifi:
           value: '0'
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Xiao-Soil-Moisture-Monitor"
-    password: ""
+    ssid: "XIAO-Soil-Moisture-Monitor"
 
 captive_portal:
     

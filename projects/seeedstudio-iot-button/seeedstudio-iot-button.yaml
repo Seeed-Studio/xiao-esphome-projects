@@ -68,8 +68,6 @@ ota:
   - platform: esphome
 
 wifi:
-  ssid: " "
-  password: ""
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "seeedstudio-iot-button"
