@@ -465,7 +465,7 @@ void APIServer::on_shutdown() {
   for (auto &c : this->clients_) {
     c->send_disconnect_request(DisconnectRequest());
   }
-  delay(10);
+  delay(1000);
 }
 
 }  // namespace api
