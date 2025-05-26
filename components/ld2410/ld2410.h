@@ -1,6 +1,7 @@
 #pragma once
 #include "esphome/core/defines.h"
 #include "esphome/core/component.h"
+#include "esphome/core/util.h"
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
@@ -23,8 +24,13 @@
 #include "esphome/components/text_sensor/text_sensor.h"
 #endif
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/deep_sleep/deep_sleep_component.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
+
+#ifdef USE_ESP32
+#include <esp_sleep.h>
+#endif
 
 #include <map>
 
@@ -152,6 +158,7 @@ class LD2410Component : public Component, public uart::UARTDevice {
 #ifdef USE_TEXT_SENSOR
   SUB_TEXT_SENSOR(version)
   SUB_TEXT_SENSOR(mac)
+  SUB_TEXT_SENSOR(status)
 #endif
 #ifdef USE_SELECT
   SUB_SELECT(distance_resolution)
@@ -162,6 +169,7 @@ class LD2410Component : public Component, public uart::UARTDevice {
 #ifdef USE_SWITCH
   SUB_SWITCH(engineering_mode)
   SUB_SWITCH(bluetooth)
+  SUB_SWITCH(led)
 #endif
 #ifdef USE_BUTTON
   SUB_BUTTON(reset)
@@ -174,6 +182,7 @@ class LD2410Component : public Component, public uart::UARTDevice {
   SUB_NUMBER(timeout)
   SUB_NUMBER(light_threshold)
 #endif
+  deep_sleep::DeepSleepComponent *deep_sleep_;
 
  public:
   LD2410Component();
@@ -200,6 +209,7 @@ class LD2410Component : public Component, public uart::UARTDevice {
   void set_distance_resolution(const std::string &state);
   void set_baud_rate(const std::string &state);
   void factory_reset();
+  void set_deep_sleep(deep_sleep::DeepSleepComponent *deep_sleep) { this->deep_sleep_ = deep_sleep; }
 
  protected:
   int two_byte_to_int_(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
@@ -218,6 +228,7 @@ class LD2410Component : public Component, public uart::UARTDevice {
   int32_t last_periodic_millis_ = millis();
   int32_t last_engineering_mode_change_millis_ = millis();
   uint16_t throttle_;
+  uint16_t clean_count_;
   std::string version_;
   std::string mac_;
   std::string out_pin_level_;

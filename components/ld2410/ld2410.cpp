@@ -52,6 +52,7 @@ void LD2410Component::dump_config() {
 #ifdef USE_TEXT_SENSOR
   LOG_TEXT_SENSOR("  ", "VersionTextSensor", this->version_text_sensor_);
   LOG_TEXT_SENSOR("  ", "MacTextSensor", this->mac_text_sensor_);
+  LOG_TEXT_SENSOR("  ", "StatusTextSensor", this->status_text_sensor_);
 #endif
 #ifdef USE_SELECT
   LOG_SELECT("  ", "LightFunctionSelect", this->light_function_select_);
@@ -80,6 +81,10 @@ void LD2410Component::dump_config() {
 void LD2410Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up LD2410...");
   this->read_all_info();
+  if (this->led_switch_ != nullptr) {
+    this->led_switch_->turn_on();
+  }
+  this->clean_count_ = 0;
   ESP_LOGCONFIG(TAG, "Mac Address : %s", const_cast<char *>(this->mac_.c_str()));
   ESP_LOGCONFIG(TAG, "Firmware Version : %s", const_cast<char *>(this->version_.c_str()));
   ESP_LOGCONFIG(TAG, "LD2410 setup complete.");
@@ -171,6 +176,42 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
     this->engineering_mode_switch_->publish_state(engineering_mode);
   }
 #endif
+  char target_state = buffer[TARGET_STATES];
+#ifdef USE_TEXT_SENSOR
+  if (this->status_text_sensor_ != nullptr) {
+    ESP_LOGD(TAG, "api connected status: %d", api_is_connected());
+    ESP_LOGD(TAG, "deepSleep wakeup reason: %d", esp_sleep_get_wakeup_cause());
+    ESP_LOGD(TAG, "clean count: %d", this->clean_count_);
+    if (target_state) {
+      this->clean_count_ = 0;
+      if (api_is_connected()) {
+        if (esp_sleep_get_wakeup_cause() == 7) {
+          this->deep_sleep_->prevent_deep_sleep();
+        }
+        this->status_text_sensor_->publish_state({"Detected"});
+        if (this->led_switch_ != nullptr) {
+          this->led_switch_->turn_off();
+        }
+      }
+    } else {
+      if (api_is_connected()) {
+        this->status_text_sensor_->publish_state({"Clean"});
+        if (this->led_switch_ != nullptr) {
+          this->led_switch_->turn_on();
+        }
+        (this->clean_count_)++;
+      }
+
+      if (this->clean_count_ >= 3 && api_is_connected() && esp_sleep_get_wakeup_cause() == 7) {
+        this->clean_count_ = 0;
+        delay(100);;
+        ESP_LOGD(TAG, "Ready to sleep now");
+        this->deep_sleep_->allow_deep_sleep();
+        this->deep_sleep_->begin_sleep();
+      }
+    }
+  }
+#endif
 #ifdef USE_BINARY_SENSOR
   /*
     Target states: 9th
@@ -179,7 +220,6 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
     0x02 = Still targets
     0x03 = Moving+Still targets
   */
-  char target_state = buffer[TARGET_STATES];
   if (this->target_binary_sensor_ != nullptr) {
     this->target_binary_sensor_->publish_state(target_state != 0x00);
   }
