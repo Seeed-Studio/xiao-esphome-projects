@@ -61,43 +61,45 @@ namespace esphome
 
             vTaskDelay(pdMS_TO_TICKS(50)); // Ensure the pin is stable
 
-            // 触发用户定义的睡眠前动作
+            // Triggering prepare sleep actions
             ESP_LOGI(TAG, "Triggering prepare sleep actions");
             for (auto *trigger : this->prepare_sleep_triggers_)
             {
                 trigger->trigger();
             }
 
-            // 通知 HA 设备即将进入睡眠
+            // Notifying Home Assistant of shutdown
             ESP_LOGI(TAG, "Notifying Home Assistant of shutdown");
             App.run_safe_shutdown_hooks();
 
             vTaskDelay(pdMS_TO_TICKS(800));
 
-            // 禁用 WiFi
+            // Disabling WiFi
             ESP_LOGI(TAG, "Disabling WiFi");
             if (esp_wifi_stop() != ESP_OK)
             {
                 ESP_LOGE(TAG, "Failed to disable WiFi");
             }
 
-            // 进入轻度睡眠
+            vTaskDelay(pdMS_TO_TICKS(2000)); // wait for WiFi on_disconect event
+
+            // Entering light sleep
             ESP_LOGI(TAG, "Entering light sleep");
             esp_light_sleep_start();
 
-            esp_sleep_enable_gpio_wakeup(); // 再次启用
+            esp_sleep_enable_gpio_wakeup(); 
 
-            // 唤醒后重新启用 WiFi
+            // Woke up from light sleep, enabling WiFi
             ESP_LOGI(TAG, "Woke up from light sleep, enabling WiFi");
             if (esp_wifi_start() != ESP_OK)
             {
                 ESP_LOGE(TAG, "Failed to enable WiFi");
             }
 
-            // 等待 WiFi 稳定
+            // wait WiFi stable
             vTaskDelay(pdMS_TO_TICKS(100));
 
-            // 触发唤醒动作
+            // Triggering on wakeup actions
             for (auto *trigger : this->wakeup_triggers_)
             {
                 trigger->trigger();
