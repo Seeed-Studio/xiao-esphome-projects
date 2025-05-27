@@ -16,6 +16,8 @@ Welcome to the XIAO ESPHome Projects repository! This repository contains a coll
     - [Project 1: XIAO 2 Channel Wi-Fi AC Energy Meter](#project-1-xiao-2-channel-wi-fi-ac-energy-meter)
     - [Project 2: XIAO Soil Moisture Monitor](#project-2-xiao-soil-moisture-monitor)
     - [Project 3: Seeed Studio IoT Button](#project-3-seeed-studio-iot-button)
+    - [Project 4: XIAO Smart IR Mate](#project-4-xiao-smart-ir-mate)
+    - [Project 5: XIAO 24GHz mmWave](#project-5-xiao-24ghz-mmwave)
   - [Installation](#installation)
     - [📱 Web Installer - One-Click Firmware Installation](#-web-installer---one-click-firmware-installation)
   - [Contributing](#contributing)
@@ -48,6 +50,14 @@ XIAO Soil Moisture Monitor is used to monitor soil moisture and feedback the cur
 ### Project 3: Seeed Studio IoT Button
 
 The Seeed Studio IoT Button is a multifunctional Internet of Things (IoT) device that can be seamlessly integrated with smart home systems. It supports both ESPHome and Zigbee connectivity options, enhancing its versatility and usability.
+
+### Project 4: XIAO Smart IR Mate
+
+XIAO Smart IR Mate is a smart device based on the Seeed Studio XIAO ESP32-C3. It enables IR remote control capabilities, RGB LED feedback, vibration output, and touch/button interactions, making it suitable for smart home automation and integration with Home Assistant.
+
+### Project 5: XIAO 24GHz mmWave
+
+XIAO 24GHz mmWave is an ESPHome project for the Seeed Studio XIAO ESP32-C6 board equipped with a 24GHz mmWave radar sensor (LD2410). It features deep sleep, battery monitoring, and Home Assistant integration, making it ideal for low-power, battery-operated presence detection.
 
 ## Installation
 ### 📱 Web Installer - One-Click Firmware Installation
