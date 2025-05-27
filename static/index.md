@@ -20,6 +20,18 @@ Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects u
 - **Features**: Seamless integration with smart home systems.
 <esp-web-install-button manifest="firmware/seeedstudio-iot-button.manifest.json"></esp-web-install-button>
 
+## XIAO Smart IR Mate
+
+- **Description**: Infrared remote control companion for smart home devices.
+- **Features**: Supports IR remote control, RGB LED feedback, vibration, and touch/button actions for smart home integration.
+<esp-web-install-button manifest="firmware/xiao-smart-ir-mate.manifest.json"></esp-web-install-button>
+
+## XIAO 24GHz mmWave
+
+- **Description**: Presence detection and battery-powered operation using a 24GHz mmWave radar sensor with deep sleep support.
+- **Features**: Supports presence detection, deep sleep, and battery monitoring with a 24GHz mmWave radar sensor.
+<esp-web-install-button manifest="firmware/xiao-24ghz-mmwave.manifest.json"></esp-web-install-button>
+
 ## Installation Notes
 
 - Ensure your browser supports Web Serial (e.g., Chrome or Edge).

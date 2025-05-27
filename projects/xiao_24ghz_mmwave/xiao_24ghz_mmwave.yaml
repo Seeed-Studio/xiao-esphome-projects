@@ -1,0 +1,118 @@
+substitutions:
+  name: "xiao-24ghz-mmwave"
+  friendly_name: "XIAO 24GHz mmwave"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: True
+  on_boot:
+    then:
+      - deep_sleep.prevent: deepSleep
+      - switch.turn_off: RF_en_switch
+      - switch.turn_on: ADC_switch
+      - switch.turn_on: mmwave_en_switch
+
+esp32:
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+    version: "5.2.1"
+    platform_version: 6.6.0
+    sdkconfig_options:
+      CONFIG_ESPTOOLPY_FLASHSIZE_4MB: y
+
+# Enable logging
+logger:
+  level: NONE
+
+# Enable Home Assistant API
+api:
+  on_client_connected:
+    - logger.log: "API client connected!"
+    - delay: 30s
+    - deep_sleep.allow: deepSleep
+
+  on_client_disconnected:
+    - deep_sleep.prevent: deepSleep
+
+ota:
+  - platform: esphome
+
+wifi:
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${friendly_name}"
+
+captive_portal:
+
+deep_sleep:
+  id: deepSleep
+  run_duration: 30s
+  sleep_duration: 180min
+  wakeup_pin: GPIO2 # D2
+
+uart:
+  id: mmWave_uart
+  tx_pin: GPIO16  # D6
+  rx_pin: GPIO17  # D7
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+
+ld2410:
+  id: ld2410_radar
+  uart_id: mmWave_uart
+  throttle: 1000ms
+
+text_sensor:
+  - platform: ld2410
+    status:
+      id: "mmWave_status"
+      name: "mmWave Status"
+      deep_sleep_id: deepSleep
+
+external_components:
+  - source: github://pr#7942
+    components: [ "adc" ]
+
+  - source:
+      type: git
+      url: https://github.com/Seeed-Studio/xiao-esphome-projects
+      ref: main
+    components: [ api, ld2410 ]
+
+sensor:
+  - platform: adc
+    id: Battery_ADC
+    name: "Battery measurement"
+    pin: GPIO1
+    attenuation: 12db
+    filters:
+      - lambda: return x * 2;
+    unit_of_measurement: "V"
+    update_interval: 5s
+
+output:
+  - platform: gpio
+    id: power_output
+    pin: GPIO19 # D8
+  - platform: gpio
+    id: RF_output
+    pin: GPIO3  # C6
+  - platform: gpio
+    id: ADC_output
+    pin: GPIO20 # D9
+
+switch:
+  - platform: output
+    id: mmwave_en_switch
+    output: power_output
+  - platform: output
+    id: RF_en_switch
+    output: RF_output
+  - platform: output
+    id: ADC_switch
+    output: ADC_output

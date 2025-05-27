@@ -1,0 +1,203 @@
+substitutions:
+  name: "xiao-smart-ir-mate"
+  friendly_name: "XIAO Smart IR Mate"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: True
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+globals:
+  - id: is_wifi_connected
+    type: bool
+    initial_value: 'false'
+
+  - id: reset_press_time
+    type: uint32_t
+    initial_value: '0'
+
+  - id: touch_count
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: touch_timer
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+
+# Enable logging
+logger:
+  level: INFO
+
+# Enable Home Assistant API
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  on_connect:
+    - globals.set:
+        id: is_wifi_connected
+        value: 'true'
+    - light.turn_on: rgb_light
+  
+  on_disconnect:
+    - globals.set:
+        id: is_wifi_connected
+        value: 'false'
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "XIAO Smart IR Mate"
+
+captive_portal:
+
+remote_transmitter:
+  id: my_transmitter
+  pin: GPIO3 # D1
+  carrier_duty_percent: 50%
+
+remote_receiver:
+  pin: 
+    number: GPIO4 # D2
+    inverted: true
+  rmt_channel: 3
+  dump: all
+
+binary_sensor:
+  - platform: gpio
+    id: touch_pad
+    pin:
+      number: GPIO5 # D3
+      mode: INPUT_PULLDOWN
+    on_state: 
+      then:
+        - lambda: |-
+            id(vibe).execute(100);
+            unsigned long current_time = millis();
+            if (current_time - id(touch_timer) < 300) {
+              id(touch_count)++;
+            } else {
+              id(touch_count) = 1;
+            }
+            id(touch_timer) = current_time;
+            if (id(check_touch_delay).is_running()) {
+              id(check_touch_delay).stop();
+              delay(10);
+            }
+            id(check_touch_delay).execute();
+
+  - platform: gpio
+    id: reset_button
+    pin:
+      number: GPIO9 # D9
+      mode: INPUT_PULLUP
+    filters: 
+      invert
+
+    on_press:
+      then:
+        - lambda: |-
+            id(reset_press_time) = millis();
+
+    on_release:
+      then:
+        - lambda: |-
+            uint32_t press_duration = millis() - id(reset_press_time);
+            if (press_duration < 5000) {
+              id(vibe).execute(100);
+              ESP.restart();
+            } else {
+              id(vibe).execute(500);
+              id(factory_switch).turn_on();
+            }
+
+output:
+  - platform: gpio
+    id: vibration_output
+    pin: GPIO6 # D4
+
+switch:
+  - platform: output
+    id: vibration_switch
+    name: "Vibration device"
+    output: vibration_output
+
+  - platform: factory_reset
+    id: factory_switch
+    name: "Restart with Factory Default Settings"
+
+light:
+  - platform: esp32_rmt_led_strip
+    rgb_order: GRB
+    pin: GPIO7 # D5
+    num_leds: 1
+    rmt_channel: 1
+    chipset: ws2812
+    name: "RGB Light"
+    id: rgb_light
+
+button:
+  - platform: template
+    id: transmit
+    name: "transmitt"
+
+script:
+  - id: vibe
+    parameters:
+      delay_ms: int
+    then:
+      - switch.turn_on: vibration_switch
+      - delay: !lambda return delay_ms;
+      - switch.turn_off: vibration_switch
+
+  - id: check_touch_delay
+    then:
+      - delay: 300ms
+      - lambda: |-
+          unsigned long current_time = millis();
+          if (current_time - id(touch_timer) >= 300) {
+            switch (id(touch_count)) {
+              case 1: {
+                ESP_LOGI("check click", "single click action");
+                id(transmit).press();
+                break;
+                }
+              case 2:
+                ESP_LOGI("check click", "double click action");
+                break;
+              case 3:
+                ESP_LOGI("check click", "triple click action");
+                break;
+              default:
+                break;
+            }
+            id(touch_count) = 0;
+          }
+
+interval:
+  - id: blink_rgb
+    interval: 500ms
+    then:
+      - lambda: |-
+          if (!id(is_wifi_connected)) {
+            static int state = 0;
+            if (state == 1) {
+              auto call = id(rgb_light).turn_on();
+              call.set_rgb(1.0, 1.0, 1.0);
+              call.set_transition_length(0);
+              call.perform();
+            } else {
+              auto call = id(rgb_light).turn_off();
+              call.set_transition_length(0);
+              call.perform();
+            }
+            state = !state;
+          }

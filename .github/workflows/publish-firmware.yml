@@ -17,6 +17,8 @@ jobs:
         projects/xiao_2_channel_wifi_ac_energy_meter/xiao_2_channel_wifi_ac_energy_meter.yaml
         projects/seeedstudio-iot-button/seeedstudio-iot-button.yaml
         projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml
+        projects/xiao_smart_ir_mate/xiao_smart_ir_mate.yaml
+        projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave.yaml
       esphome-version: 2025.4.0
       #### Modify above here to match your project ####
 
