@@ -49,4 +49,3 @@ You can modify the YAML file to:
 - Adjust LED effects or sleep behavior.
 - Integrate with other smart home automations.
 
-## 2、Purchase links and wiki
