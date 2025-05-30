@@ -43,14 +43,7 @@ external_components:
       type: git
       url: https://github.com/Seeed-Studio/xiao-esphome-projects
       ref: main
-    components: [ light_sleep ]
-    refresh: 0s
-
-  - source:
-      type: git
-      url: https://github.com/ackPeng/esphome.git
-      ref: api
-    components: [ api ]
+    components: [ light_sleep, api]
     refresh: 0s
     
 # Enable logging
