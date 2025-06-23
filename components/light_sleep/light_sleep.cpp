@@ -10,6 +10,7 @@ namespace esphome
     namespace light_sleep
     {
 
+        static const uint32_t TEARDOWN_TIMEOUT_LIGHT_SLEEP_MS = 5000;
         static const char *TAG = "light_sleep";
 
         void LightSleep::setup()
@@ -71,6 +72,8 @@ namespace esphome
             // Notifying Home Assistant of shutdown
             ESP_LOGI(TAG, "Notifying Home Assistant of shutdown");
             App.run_safe_shutdown_hooks();
+            App.teardown_components(TEARDOWN_TIMEOUT_LIGHT_SLEEP_MS);
+            App.run_powerdown_hooks();
 
             vTaskDelay(pdMS_TO_TICKS(800));
 
@@ -80,8 +83,6 @@ namespace esphome
             {
                 ESP_LOGE(TAG, "Failed to disable WiFi");
             }
-
-            vTaskDelay(pdMS_TO_TICKS(2000)); // wait for WiFi on_disconect event
 
             // Entering light sleep
             ESP_LOGI(TAG, "Entering light sleep");
