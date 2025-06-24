@@ -6,16 +6,15 @@ esphome:
   name: "${name}"
   friendly_name: "${friendly_name}"
   name_add_mac_suffix: true
+  project:
+    name: "seeedstudio.iot_button"
+    version: "1.1"
   platformio_options:
     board_upload.maximum_size: 4194304
   on_boot:
     priority: -100.0
     then:
       - light.turn_on: blue_led
-      - delay: 5min  # Wait for initialization
-      - logger.log: "Boot complete, entering light sleep"
-      - light_sleep.enter:
-          id: light_sleep_1
 
 esp32:
   board: esp32-c6-devkitc-1
@@ -271,23 +270,23 @@ binary_sensor:
     name: "SeeedStudio IoT Button"
     on_multi_click:
       - timing:
-          - ON for at most 300ms
+          - ON for at most 1s
           - OFF for at least 0.5s
         then:
           - logger.log: "Single Short Clicked"
           - switch.toggle: virtual_toggle_1
 
       - timing:
-          - ON for at most 300ms
-          - OFF for at most 0.5s
-          - ON for at most 300ms
-          - OFF for at least 0.2s 
+          - ON for at most 1s
+          - OFF for at most 1s
+          - ON for at most 1s
+          - OFF for at least 0.2s
         then:
           - logger.log: "Double Clicked"
           - switch.toggle: virtual_toggle_2
 
       - timing:
-          - ON for 1s to 1.5s
+          - ON for 1s to 2s
           - OFF for at least 0.5s
         then:
           - logger.log: "Long Press"
@@ -303,13 +302,6 @@ binary_sensor:
       - globals.set:
           id: last_activity_time
           value: !lambda 'return millis();'
-      - if:
-          condition:
-            lambda: 'return (millis() - id(button_press_time)) >= 5000;'
-          then:
-            - logger.log: "Entering Light Sleep Mode"
-            - light_sleep.enter:
-                id: light_sleep_1
 
 globals:
   - id: button_press_time
