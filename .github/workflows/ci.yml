@@ -21,16 +21,17 @@ jobs:
       max-parallel: 3
       matrix:
         #### Modify below here to match your project ####
-        file:
-          - projects/xiao_2_channel_wifi_ac_energy_meter/xiao_2_channel_wifi_ac_energy_meter
-          - projects/seeedstudio-iot-button/seeedstudio-iot-button
-          - projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor
-          - projects/xiao_smart_ir_mate/xiao_smart_ir_mate
-          - projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave
+        include:
+          - file: projects/xiao_2_channel_wifi_ac_energy_meter/xiao_2_channel_wifi_ac_energy_meter
+            esphome-version: stable
+          - file: projects/seeedstudio-iot-button/seeedstudio-iot-button
+            esphome-version: stable
+          - file: projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor
+            esphome-version: stable
+          - file: projects/xiao_smart_ir_mate/xiao_smart_ir_mate
+            esphome-version: dev
+          #- projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave
         #### Modify above here to match your project ####
-
-        esphome-version:
-          - stable
 
     steps:
       - name: Checkout source code
@@ -40,4 +41,3 @@ jobs:
         with:
           yaml-file: ${{ matrix.file }}.yaml
           version: ${{ matrix.esphome-version }}
-
