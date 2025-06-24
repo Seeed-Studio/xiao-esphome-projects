@@ -81,8 +81,6 @@ namespace esphome
                 ESP_LOGE(TAG, "Failed to disable WiFi");
             }
 
-            vTaskDelay(pdMS_TO_TICKS(2000)); // wait for WiFi on_disconect event
-
             // Entering light sleep
             ESP_LOGI(TAG, "Entering light sleep");
             esp_light_sleep_start();
