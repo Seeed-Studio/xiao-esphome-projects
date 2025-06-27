@@ -5,17 +5,19 @@
 
 
 substitutions:
-  name: "seeed-ir"
-  friendly_name: "seeed-ir"
-  version: "v1"
+  name: "xiao-smart-ir-mate"
+  friendly_name: "XIAO Smart IR Mate"
 
 esphome:
-  name: "${name}-${version}"
+  name: "${name}"
   friendly_name: "${friendly_name}"
   name_add_mac_suffix: True
+  project:
+    name: "xiao.smart-ir-mate"
+    version: "2.0"
 
 esp32:
-  board: esp32-c3-devkitm-1
+  board: seeed_xiao_esp32c3
   framework:
     type: arduino
 
@@ -26,11 +28,6 @@ globals:
 
   - id: reset_press_time
     type: uint32_t
-    initial_value: '0'
-
-  - id: touch_count
-    type: int
-    restore_value: no
     initial_value: '0'
 
   - id: touch_timer
@@ -93,7 +90,7 @@ captive_portal:
 external_components:
   - source:
       type: git        # git component
-      url: https://github.com/Yuan-AZKKXL/xiao-esphome-projects  # Path where the component is github
+      url: https://github.com/Seeed-Studio/xiao-esphome-projects  # Path where the component is github
       ref: dev   # Branch name
     components: [Flash_comp]   # Explicitly specify the components to import
 
@@ -159,6 +156,7 @@ button:
           if (id(send_data_vector).size() > 0) {
             id(send_raw).execute();
             ESP_LOGI("ir", "Sending signal index: %d", id(signal_select_index));
+            ESP_LOGI("ir", "Sending signal size: %d", id(send_data_vector).size());
           } else {
             ESP_LOGI("ir", "Signal index %d not learned", id(signal_select_index));
           }
@@ -232,13 +230,7 @@ binary_sensor:
       then:
         - lambda: |-
             id(vibe).execute(100);
-            unsigned long current_time = millis();
-            if (current_time - id(touch_timer) < 300) {
-              id(touch_count)++;
-            } else {
-              id(touch_count) = 1;
-            }
-            id(touch_timer) = current_time;
+            id(touch_timer) = millis();
             if (id(check_touch_delay).is_running()) {
               id(check_touch_delay).stop();
               delay(10);
@@ -296,22 +288,8 @@ script:
       - lambda: |-
           unsigned long current_time = millis();
           if (current_time - id(touch_timer) >= 300) {
-            switch (id(touch_count)) {
-              case 1: {
-                ESP_LOGI("check click", "single click action");
-                id(transmit).press();
-                break;
-                }
-              case 2:
-                ESP_LOGI("check click", "double click action");
-                break;
-              case 3:
-                ESP_LOGI("check click", "triple click action");
-                break;
-              default:
-                break;
-            }
-            id(touch_count) = 0;
+            ESP_LOGI("check click", "single click action");
+            id(transmit).press();
           }
 
   # Send infrared signal
