@@ -8,7 +8,7 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: "seeedstudio.iot_button"
-    version: "1.1"
+    version: "3.1"
   platformio_options:
     board_upload.maximum_size: 4194304
   on_boot:
@@ -57,6 +57,8 @@ ota:
   - platform: esphome
 
 wifi:
+  ssid: " "
+  password: ""
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "seeedstudio-iot-button"
