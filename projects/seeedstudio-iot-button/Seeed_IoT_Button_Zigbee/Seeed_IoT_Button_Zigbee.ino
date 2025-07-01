@@ -1,0 +1,385 @@
+#ifndef ZIGBEE_MODE_ED
+#error "Zigbee end device mode is not selected in Tools->Zigbee mode"
+#endif
+
+#include "Zigbee.h"
+#include <FastLED.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
+
+#include "ZigbeeBinarySensor.h"
+
+/* Button Configuration */
+const uint8_t BUTTON_PIN = 9;
+const uint32_t MULTI_CLICK_TIME = 300;       // Maximum time between clicks for multi-click (ms)
+const uint32_t SHORT_LONG_PRESS_TIME = 1000; // Minimum time for short long press (1 second)
+const uint32_t LONG_PRESS_TIME = 5000;       // Minimum time for long press (5 seconds)
+const uint32_t DEBOUNCE_TIME = 20;           // Debounce time (ms)
+
+/* LED Configuration */
+const uint8_t BLUE_LED_PIN = 2;
+const uint8_t RGB_ENABLE_PIN = 18;
+const uint8_t RGB_PIN = 19; // GPIO19 for WS2812 LED
+const uint8_t NUM_RGBS = 1; // Single LED
+CRGB rgbs[NUM_RGBS];
+
+/* Button Events */
+enum class ButtonEvent
+{
+  PRESS,            // Pressed
+  RELEASE,          // Released
+  SINGLE_CLICK,     // Single click
+  DOUBLE_CLICK,     // Double click
+  TRIPLE_CLICK,     // Triple click
+  SHORT_LONG_PRESS, // Short long press (1-5 seconds)
+  LONG_PRESS        // Long press (>5 seconds)
+};
+
+/* Zigbee Configuration */
+#define BUTTON_ENDPOINT 10
+ZigbeeBinarySensor zbIoTButton = ZigbeeBinarySensor(BUTTON_ENDPOINT);
+
+/* Global Variables */
+QueueHandle_t eventQueue;
+bool buttonStatus = false;
+uint32_t pressStartTime = 0;
+uint32_t lastReleaseTime = 0;
+uint8_t clickCount = 0;
+bool longPressTriggered = false;
+bool clickSequenceActive = false; // Tracks if a click sequence is in progress
+
+/********************* LED Functions **************************/
+void ledBlink()
+{
+  uint8_t rand = random8();
+  for (int i = 0; i < 2; i++)
+  {
+    rgbs[0] = CHSV(rand, 255, 255); // Random color
+    FastLED.show();
+    vTaskDelay(200 / portTICK_PERIOD_MS);
+    rgbs[0] = CRGB::Black;
+    FastLED.show();
+    vTaskDelay(200 / portTICK_PERIOD_MS);
+  }
+}
+
+void ledBreathing()
+{
+  uint8_t hue = random8();    // Random color hue
+  for (int i = 0; i < 1; i++) // one breathing cycle
+  {
+    // Brighten
+    for (int brightness = 0; brightness <= 255; brightness += 5)
+    {
+      rgbs[0] = CHSV(hue, 255, brightness);
+      FastLED.show();
+      vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+    // Dim
+    for (int brightness = 255; brightness >= 0; brightness -= 5)
+    {
+      rgbs[0] = CHSV(hue, 255, brightness);
+      FastLED.show();
+      vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+  }
+  rgbs[0] = CRGB::Black;
+  FastLED.show();
+}
+
+void ledRainbow()
+{
+  for (int hue = 0; hue < 128; hue += 10)
+  {
+    rgbs[0] = CHSV(hue, 255, 255);
+    FastLED.show();
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+  rgbs[0] = CRGB::Black;
+  FastLED.show();
+}
+
+/********************* FreeRTOS Tasks **************************/
+// Button detection task
+void buttonTask(void *pvParameters)
+{
+  uint32_t lastDebounceTime = 0;
+  bool lastState = false;
+
+  while (1)
+  {
+    bool currentState = (digitalRead(BUTTON_PIN) == LOW);
+    uint32_t currentTime = millis();
+
+    // Debounce
+    if (currentTime - lastDebounceTime < DEBOUNCE_TIME)
+    {
+      vTaskDelay(1 / portTICK_PERIOD_MS);
+      continue;
+    }
+
+    // Detect edge change
+    if (currentState != lastState)
+    {
+      lastDebounceTime = currentTime;
+      lastState = currentState;
+
+      if (currentState)
+      {
+        // Press event
+        pressStartTime = currentTime;
+        if (!clickSequenceActive)
+        {
+          clickCount = 1;
+          clickSequenceActive = true;
+        }
+        else if (currentTime - lastReleaseTime <= MULTI_CLICK_TIME)
+        {
+          clickCount++;
+        }
+        longPressTriggered = false;
+        ButtonEvent event = ButtonEvent::PRESS;
+        xQueueSend(eventQueue, &event, 0);
+      }
+      else
+      {
+        // Release event
+        uint32_t pressDuration = currentTime - pressStartTime;
+        ButtonEvent event = ButtonEvent::RELEASE;
+        xQueueSend(eventQueue, &event, 0);
+
+        if (!longPressTriggered)
+        {
+          if (pressDuration >= LONG_PRESS_TIME)
+          {
+            event = ButtonEvent::LONG_PRESS;
+            longPressTriggered = true;
+            clickSequenceActive = false;
+            clickCount = 0;
+            xQueueSend(eventQueue, &event, 0);
+          }
+          else if (pressDuration >= SHORT_LONG_PRESS_TIME)
+          {
+            event = ButtonEvent::SHORT_LONG_PRESS;
+            longPressTriggered = true;
+            clickSequenceActive = false;
+            clickCount = 0;
+            xQueueSend(eventQueue, &event, 0);
+          }
+          else
+          {
+            lastReleaseTime = currentTime;
+            xTaskCreate(clickTimeoutTask, "ClickTimeout", 2048, NULL, 1, NULL);
+          }
+        }
+      }
+    }
+    else if (currentState && !longPressTriggered)
+    {
+      // Check long press
+      if (currentTime - pressStartTime >= LONG_PRESS_TIME)
+      {
+        ButtonEvent event = ButtonEvent::LONG_PRESS;
+        longPressTriggered = true;
+        clickSequenceActive = false;
+        clickCount = 0;
+        xQueueSend(eventQueue, &event, 0);
+      }
+    }
+
+    vTaskDelay(10 / portTICK_PERIOD_MS); // Reduce CPU usage
+  }
+}
+
+void clickTimeoutTask(void *pvParameters)
+{
+  uint32_t startTime = millis();
+  while (millis() - lastReleaseTime < MULTI_CLICK_TIME)
+  {
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+
+  ButtonEvent event;
+  switch (clickCount)
+  {
+  case 1:
+    event = ButtonEvent::SINGLE_CLICK;
+    break;
+  case 2:
+    event = ButtonEvent::DOUBLE_CLICK;
+    break;
+  case 3:
+    event = ButtonEvent::TRIPLE_CLICK;
+    break;
+  default:
+    break;
+  }
+  xQueueSend(eventQueue, &event, 0);
+  clickCount = 0;
+  clickSequenceActive = false;
+  vTaskDelete(NULL);
+}
+
+void mainTask(void *pvParameters)
+{
+  ButtonEvent event;
+  while (1)
+  {
+    if (xQueueReceive(eventQueue, &event, portMAX_DELAY) == pdTRUE)
+    {
+      switch (event)
+      {
+      case ButtonEvent::PRESS:
+        if (buttonStatus == false)
+        {
+          buttonStatus = true;
+          Serial.println("Button Pressed");
+          if (Zigbee.connected())
+          {
+            zbIoTButton.setStatus(buttonStatus);
+          }
+        }
+        break;
+
+      case ButtonEvent::RELEASE:
+        if (buttonStatus == true)
+        {
+          buttonStatus = false;
+          Serial.println("Button Released");
+          if (Zigbee.connected())
+          {
+            zbIoTButton.setStatus(buttonStatus);
+          }
+        }
+
+        break;
+
+      case ButtonEvent::SINGLE_CLICK:
+        Serial.println("Single Click: Blink LED");
+        ledBlink();
+        if (Zigbee.connected())
+        {
+        }
+        break;
+
+      case ButtonEvent::DOUBLE_CLICK:
+        Serial.println("Double Click: Breathing LED");
+        ledBreathing();
+        if (Zigbee.connected())
+        {
+        }
+        break;
+
+      case ButtonEvent::TRIPLE_CLICK:
+        Serial.println("Triple Click: Ignored");
+        if (Zigbee.connected())
+        {
+        }
+        break;
+
+      case ButtonEvent::SHORT_LONG_PRESS:
+        Serial.println("Short Long Press: Rainbow LED");
+        ledRainbow();
+        if (Zigbee.connected())
+        {
+        }
+        break;
+
+      case ButtonEvent::LONG_PRESS:
+        Serial.println("Long Press: Reset Zigbee");
+        delay(1000);
+        Zigbee.factoryReset();
+        break;
+      }
+    }
+  }
+}
+
+void blueLedTask(void *pvParameters)
+{
+  pinMode(BLUE_LED_PIN, OUTPUT);
+  while (1)
+  {
+    if (!Zigbee.connected()) // blink when not connected to Zigbee.
+    {
+      digitalWrite(BLUE_LED_PIN, LOW);
+      vTaskDelay(500 / portTICK_PERIOD_MS);
+      digitalWrite(BLUE_LED_PIN, HIGH);
+      vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
+    else
+    {
+      digitalWrite(BLUE_LED_PIN, LOW);
+    }
+  }
+}
+/********************* Zigbee Functions **************************/
+void setupZigbee()
+{
+  // Set Zigbee device information
+  zbIoTButton.setManufacturerAndModel("Seeed Studio", "IoT_Button");
+
+  // Add endpoint to Zigbee Core
+  Zigbee.addEndpoint(&zbIoTButton);
+
+  Serial.println("Starting Zigbee...");
+  if (!Zigbee.begin())
+  {
+    Serial.println("Zigbee failed to start!");
+    Serial.println("Rebooting...");
+    ESP.restart();
+  }
+  else
+  {
+    Serial.println("Zigbee started successfully!");
+  }
+}
+
+/********************* Arduino Setup **************************/
+void setup()
+{
+  Serial.begin(115200);
+
+  Serial.println("Zigbee IoT Button Starting...");
+
+  // Initialize button pin
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(RGB_ENABLE_PIN, OUTPUT);
+  digitalWrite(RGB_ENABLE_PIN, HIGH);
+
+  // Initialize LED
+  FastLED.addLeds<WS2812, RGB_PIN, GRB>(rgbs, NUM_RGBS);
+  FastLED.setBrightness(50);
+  ledRainbow();
+
+  // Initialize Zigbee
+  setupZigbee();
+
+  // Create event queue
+  eventQueue = xQueueCreate(10, sizeof(ButtonEvent));
+  if (eventQueue == NULL)
+  {
+    Serial.println("Failed to create event queue!");
+    ESP.restart();
+  }
+
+  // Create FreeRTOS tasks
+  xTaskCreate(buttonTask, "ButtonTask", 2048, NULL, 2, NULL);
+  xTaskCreate(blueLedTask, "BlueLedTask", 1024, NULL, 1, NULL);
+  xTaskCreate(mainTask, "MainTask", 2048, NULL, 1, NULL);
+}
+
+/********************* Arduino Loop **************************/
+void loop()
+{
+  if (!Zigbee.connected())
+  {
+    Serial.print(".");
+    delay(100);
+  }
+  else
+  {
+    delay(1000);
+  }
+}
