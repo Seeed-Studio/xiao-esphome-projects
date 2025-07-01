@@ -22,14 +22,14 @@ jobs:
       release-url: ${{ github.event.release.html_url }}
       release-version: ${{ github.event.release.tag_name }}
 
-  # ESPHome 2025.7.0
+  # ESPHome dev version
   build-firmware-dev:
-    name: Build Firmware
+    name: Build Firmware (Dev)
     uses: esphome/workflows/.github/workflows/build.yml@2025.4.0
     with:
       files: |
         projects/xiao_smart_ir_mate/xiao_smart_ir_mate.yaml
-      esphome-version: 2025.7.0
+      esphome-version: dev
       release-summary: ${{ github.event.release.body }}
       release-url: ${{ github.event.release.html_url }}
       release-version: ${{ github.event.release.tag_name }}
