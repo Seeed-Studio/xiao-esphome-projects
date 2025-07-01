@@ -1,25 +1,27 @@
 substitutions:
-  name: "seeedstudio-iot-button"
-  friendly_name: "Seeed Studio IoT Button"
+  name: "seeedstudio-iotbutton-v2"
+  friendly_name: "SeeedStudio IoT Button V2"
 
 esphome:
   name: "${name}"
   friendly_name: "${friendly_name}"
   name_add_mac_suffix: true
   project:
-    name: "seeedstudio.iot_button"
-    version: "3.1"
+    name: "seeedstudio.iot_button_v2"
+    version: "1.0"
   platformio_options:
     board_upload.maximum_size: 4194304
   on_boot:
-    priority: -100.0
+    priority: 600.0
     then:
-      - light.turn_on: blue_led
+      - light.turn_off: blue_led
+      - light.turn_on: red_led
+      - output.turn_on: battery_enable_pin
 
 esp32:
   board: esp32-c6-devkitc-1
   variant: esp32c6
-  flash_size: 4MB # upload.flash_size
+  flash_size: 4MB
   framework:
     type: esp-idf
     sdkconfig_options:
@@ -44,7 +46,11 @@ external_components:
       ref: main
     components: [ light_sleep, api]
     refresh: 0s
-    
+
+  - source: github://PhracturedBlue/c6_adc
+    components: [ c6_adc ]
+    refresh: 0s
+
 # Enable logging
 logger:
   hardware_uart: USB_SERIAL_JTAG
@@ -57,8 +63,6 @@ ota:
   - platform: esphome
 
 wifi:
-  ssid: " "
-  password: ""
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "seeedstudio-iot-button"
@@ -68,48 +72,94 @@ wifi:
   on_connect:
     then:
       - logger.log: "WiFi Connected!"
-      # Show green color for 3 seconds then turn off to save power
-      - light.turn_on: 
-          id: rgb_led
-          brightness: 100%
-          red: 0%
-          green: 100%
-          blue: 0%
-          effect: "Subtle Flicker"
-      - delay: 1s
-      - light.turn_off: rgb_led
+      - light.turn_off: red_led  # Turn off red LED
+      - light.turn_on: blue_led  # Turn on blue LED
+      - lambda: |-
+          id(battery_voltage).update();
+          delay(50);
+          id(battery_percentage).update();
 
   on_disconnect:
     then:
       - logger.log: "WiFi Disconnected!"
+      - light.turn_off: blue_led
+      - light.turn_on: red_led
 
 captive_portal:
 
 output:
   - platform: gpio
-    pin: GPIO2
-    id: user_led
-    inverted: True
+    pin: GPIO0
+    id: battery_enable_pin
+    inverted: False
+  - platform: gpio
+    pin: GPIO3
+    id: red_led_pin
+    inverted: False
+  - platform: gpio
+    pin: GPIO14
+    id: blue_led_pin
+    inverted: False
   - platform: gpio
     pin: GPIO18
     id: enable_pin
 
 light_sleep:
   id: light_sleep_1
-  wakeup_pin: 9
+  wakeup_pin: 2
   on_prepare_sleep:
     then:
       - logger.log: "Preparing to enter light sleep"
+      - output.turn_off: battery_enable_pin
       - light.turn_off: blue_led
+      - light.turn_off: red_led
       - light.turn_off: rgb_led
   on_wakeup:
     then:
-      - light.turn_on: blue_led
+      - output.turn_on: battery_enable_pin
+      - light.turn_on: red_led
       - logger.log: "Device woke up from light sleep"
       - globals.set:
           id: last_activity_time
           value: !lambda 'return millis();'
 
+sensor:
+  - platform: c6_adc
+    pin: GPIO1
+    name: "Battery Voltage"
+    id: battery_voltage
+    update_interval: 30s
+    attenuation: 12db
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    filters:
+      - multiply: 3.0 
+      - sliding_window_moving_average: # Smoothing voltage fluctuations
+          window_size: 5
+          send_every: 1
+          send_first_at: 1
+  - platform: template
+    name: "Battery Percentage"
+    id: battery_percentage
+    update_interval: 30s
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    icon: "mdi:battery"
+    lambda: |-
+      float voltage = id(battery_voltage).state;
+      if (isnan(voltage) || voltage < 2.75f || voltage > 4.2f) {
+        return NAN;
+      }
+      float percentage = ((voltage - 2.75f) / (4.2f - 2.75f)) * 100.0f;
+      percentage = clamp(percentage, 0.0f, 100.0f);
+      if (percentage > id(last_battery_percentage) && (percentage - id(last_battery_percentage)) < 5.0f) {
+        percentage = id(last_battery_percentage);
+      } else {
+        id(last_battery_percentage) = percentage;
+      }
+      return percentage;
+
+    
 # Switch to control the LED strip power
 switch:
   - platform: output
@@ -221,12 +271,16 @@ switch:
           value: !lambda 'return millis();'
       # Add your closing action
 
-
 light:
   - platform: binary
     name: "SeeedStudio IoT Button Blue LED"
-    output: user_led
+    output: blue_led_pin
     id: blue_led
+    internal: true
+  - platform: binary
+    name: "SeeedStudio IoT Button Red LED"
+    output: red_led_pin
+    id: red_led
     internal: true
   - platform: esp32_rmt_led_strip
     internal: true
@@ -264,7 +318,7 @@ light:
 binary_sensor:
   - platform: gpio
     pin:
-      number: GPIO9
+      number: GPIO2
       inverted: True
       mode:
         input: True
@@ -314,6 +368,10 @@ globals:
     type: uint32_t
     restore_value: no
     initial_value: '0'
+  - id: last_battery_percentage
+    type: float
+    restore_value: yes
+    initial_value: '100.0'
 
 interval:
   - interval: 10s

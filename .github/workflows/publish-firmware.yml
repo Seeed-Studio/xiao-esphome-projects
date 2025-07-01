@@ -8,20 +8,28 @@ permissions:
   contents: write
 
 jobs:
-  build-firmware:
+  build-firmware-stable:
     name: Build Firmware
     uses: esphome/workflows/.github/workflows/build.yml@2025.4.0
     with:
-      #### Modify below here to match your project ####
       files: |
         projects/xiao_2_channel_wifi_ac_energy_meter/xiao_2_channel_wifi_ac_energy_meter.yaml
         projects/seeedstudio-iot-button/seeedstudio-iot-button.yaml
         projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml
-        projects/xiao_smart_ir_mate/xiao_smart_ir_mate.yaml
         projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave.yaml
       esphome-version: 2025.4.0
-      #### Modify above here to match your project ####
+      release-summary: ${{ github.event.release.body }}
+      release-url: ${{ github.event.release.html_url }}
+      release-version: ${{ github.event.release.tag_name }}
 
+  # ESPHome dev version
+  build-firmware-dev:
+    name: Build Firmware (Dev)
+    uses: esphome/workflows/.github/workflows/build.yml@2025.4.0
+    with:
+      files: |
+        projects/xiao_smart_ir_mate/xiao_smart_ir_mate.yaml
+      esphome-version: dev
       release-summary: ${{ github.event.release.body }}
       release-url: ${{ github.event.release.html_url }}
       release-version: ${{ github.event.release.tag_name }}
@@ -30,6 +38,7 @@ jobs:
     name: Upload to Release
     uses: esphome/workflows/.github/workflows/upload-to-gh-release.yml@2025.4.0
     needs:
-      - build-firmware
+      - build-firmware-stable
+      - build-firmware-dev
     with:
       version: ${{ github.event.release.tag_name }}
