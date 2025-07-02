@@ -186,7 +186,7 @@ select:
           id(signal_select_index) = i;
           ESP_LOGI("ir", "Current selected signal index: %d", i);
           id(send_data_vector).clear();
-          id(send_data_vector) = id(signal_nvs).load_from_nvs(id(signal_select_index));
+          id(send_data_vector) = id(signal_nvs).load_from_nvs<long int>(id(signal_select_index));
           if (id(send_data_vector).size() > 0) {
             id(is_learned_signal_script).execute(true);
           } else {
