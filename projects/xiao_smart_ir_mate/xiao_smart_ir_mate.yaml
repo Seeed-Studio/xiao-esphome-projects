@@ -92,7 +92,7 @@ external_components:
   - source:
       type: git        # git component
       url: https://github.com/Seeed-Studio/xiao-esphome-projects  # Path where the component is github
-      ref: dev   # Branch name
+      ref: main   # Branch name
     components: [Flash_comp]   # Explicitly specify the components to import
 
 # Component name
