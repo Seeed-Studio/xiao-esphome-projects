@@ -12,19 +12,36 @@
 #include "ZigbeeBinarySensor.h"
 #include "ZigbeeHASwitch.h"
 
-/* Button Configuration */
-const uint8_t BUTTON_PIN = 9;
-const uint32_t MULTI_CLICK_TIME = 300;       // Maximum time between clicks for multi-click (ms)
-const uint32_t SHORT_LONG_PRESS_TIME = 1000; // Minimum time for short long press (1 second)
-const uint32_t LONG_PRESS_TIME = 5000;       // Minimum time for long press (5 seconds)
-const uint32_t DEBOUNCE_TIME = 20;           // Debounce time (ms)
-const uint32_t INACTIVITY_TIMEOUT = 60*1000;  // 1 minutes inactivity timeout (ms)
+#if !defined(IOT_BUTTON_V1) && !defined(IOT_BUTTON_V2)
+#define IOT_BUTTON_V2
+#endif
 
-/* LED Configuration */
+/* Hardware Configuration */
+#if defined(IOT_BUTTON_V1)
+const uint8_t BUTTON_PIN = 9;
 const uint8_t BLUE_LED_PIN = 2;
 const uint8_t RGB_ENABLE_PIN = 18;
-const uint8_t RGB_PIN = 19; // GPIO19 for WS2812 LED
-const uint8_t NUM_RGBS = 1; // Single LED
+const uint8_t RGB_PIN = 19;
+const uint8_t NUM_RGBS = 1;
+#elif defined(IOT_BUTTON_V2)
+const uint8_t BUTTON_PIN = 2;
+const uint8_t BLUE_LED_PIN = 3;
+const uint8_t RED_LED_PIN = 14;
+const uint8_t RGB_ENABLE_PIN = 18;
+const uint8_t RGB_PIN = 19;
+const uint8_t NUM_RGBS = 1;
+const uint8_t BATTERY_ADC_PIN = 1;
+const uint8_t BATTERY_ENABLE_PIN = 0;
+#endif
+
+/* Button Configuration */
+const uint32_t MULTI_CLICK_TIME = 300;         // Maximum time between clicks for multi-click (ms)
+const uint32_t SHORT_LONG_PRESS_TIME = 1000;   // Minimum time for short long press (1 second)
+const uint32_t LONG_PRESS_TIME = 5000;         // Minimum time for long press (5 seconds)
+const uint32_t DEBOUNCE_TIME = 20;             // Debounce time (ms)
+const uint32_t INACTIVITY_TIMEOUT = 60 * 1000; // 1 minutes inactivity timeout (ms)
+
+/* LED Configuration */
 CRGB rgbs[NUM_RGBS];
 
 /* Button Events */
@@ -56,10 +73,15 @@ uint32_t pressStartTime = 0;
 uint32_t lastReleaseTime = 0;
 uint8_t clickCount = 0;
 bool longPressTriggered = false;
-bool clickSequenceActive = false;           // Tracks if a click sequence is in progress
-TaskHandle_t clickTimeoutTaskHandle = NULL; 
-uint32_t lastActivityTime = 0;             // Tracks last button activity for sleep
-volatile bool isAwake = true;              // Tracks device awake/sleep state
+bool clickSequenceActive = false; // Tracks if a click sequence is in progress
+TaskHandle_t clickTimeoutTaskHandle = NULL;
+uint32_t lastActivityTime = 0; // Tracks last button activity for sleep
+volatile bool isAwake = true;  // Tracks device awake/sleep state
+
+#if defined(IOT_BUTTON_V2)
+float emaVoltage = 0.0;
+float batteryPercentage = 100.0;
+#endif
 
 /********************* LED Functions **************************/
 void ledBlink()
@@ -116,8 +138,7 @@ void ledRainbow()
 void clickTimeoutTask(void *pvParameters)
 {
   uint32_t localClickCount = clickCount;
-  uint32_t localLastReleaseTime = lastReleaseTime; 
-
+  uint32_t localLastReleaseTime = lastReleaseTime;
 
   while (millis() - localLastReleaseTime < MULTI_CLICK_TIME)
   {
@@ -346,7 +367,8 @@ void mainTask(void *pvParameters)
   }
 }
 
-void blueLedTask(void *pvParameters)
+#if defined(IOT_BUTTON_V1)
+void ledTask(void *pvParameters)
 {
   pinMode(BLUE_LED_PIN, OUTPUT);
   while (1)
@@ -355,7 +377,7 @@ void blueLedTask(void *pvParameters)
     {
       if (!Zigbee.connected()) // Blink when not connected to Zigbee
       {
-        digitalWrite(BLUE_LED_PIN, LOW);  // On
+        digitalWrite(BLUE_LED_PIN, LOW); // On
         vTaskDelay(500 / portTICK_PERIOD_MS);
         digitalWrite(BLUE_LED_PIN, HIGH); // Off
         vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -372,6 +394,105 @@ void blueLedTask(void *pvParameters)
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
+#elif defined(IOT_BUTTON_V2)
+void ledTask(void *pvParameters)
+{
+  pinMode(BLUE_LED_PIN, OUTPUT);
+  pinMode(RED_LED_PIN, OUTPUT);
+  bool ledState = false;
+
+  while (1)
+  {
+    if (isAwake)
+    {
+      bool isLowBattery = (batteryPercentage < 20.0);
+      bool isConnected = Zigbee.connected();
+      uint8_t activeLedPin = isLowBattery ? RED_LED_PIN : BLUE_LED_PIN;
+      uint8_t inactiveLedPin = isLowBattery ? BLUE_LED_PIN : RED_LED_PIN;
+
+      if (isConnected)
+      {
+        digitalWrite(activeLedPin, LOW);
+        digitalWrite(inactiveLedPin, HIGH);
+      }
+      else
+      {
+        ledState = !ledState;
+        digitalWrite(activeLedPin, ledState ? LOW : HIGH);
+        digitalWrite(inactiveLedPin, HIGH);
+      }
+    }
+    else
+    {
+      digitalWrite(BLUE_LED_PIN, HIGH);
+      digitalWrite(RED_LED_PIN, HIGH);
+    }
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+  }
+}
+#endif
+
+#if defined(IOT_BUTTON_V2)
+void batteryTask(void *pvParameters)
+{
+  pinMode(BATTERY_ENABLE_PIN, OUTPUT);
+    const int SAMPLE_COUNT = 10;
+  const float MIN_VOLTAGE = 2.75;
+  const float MAX_VOLTAGE = 4.2;
+  const float ALPHA = 0.1;
+
+  while (1)
+  {
+    digitalWrite(BATTERY_ENABLE_PIN, HIGH);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+
+    float adcSum = 0;
+    for (int i = 0; i < SAMPLE_COUNT; i++)
+    {
+      adcSum += analogRead(BATTERY_ADC_PIN);
+      vTaskDelay(5 / portTICK_PERIOD_MS);
+    }
+    digitalWrite(BATTERY_ENABLE_PIN, LOW);
+
+    float adcAverage = adcSum / SAMPLE_COUNT;
+    float voltage = (adcAverage / 4095.0) * 3.3 * 3.0;
+
+    if (emaVoltage == 0.0)
+    {
+      emaVoltage = voltage;
+    }
+    else
+    {
+      emaVoltage = ALPHA * voltage + (1 - ALPHA) * emaVoltage;
+    }
+
+    float localBatteryPercentage = (emaVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE) * 100;
+    if (localBatteryPercentage < 0)
+      localBatteryPercentage = 0;
+    if (localBatteryPercentage > 100)
+      localBatteryPercentage = 100;
+
+    batteryPercentage = localBatteryPercentage;
+
+    if (voltage < MIN_VOLTAGE)
+    {
+      Serial.printf("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
+                    voltage, emaVoltage, localBatteryPercentage);
+    }
+    else
+    {
+      Serial.printf("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
+                    voltage, emaVoltage, localBatteryPercentage);
+      if (Zigbee.connected())
+      {
+        zbIoTButton.setBatteryPercentage((uint8_t)localBatteryPercentage);
+      }
+    }
+
+    vTaskDelay(30000 / portTICK_PERIOD_MS);
+  }
+}
+#endif
 
 void sleepTask(void *pvParameters)
 {
@@ -381,17 +502,20 @@ void sleepTask(void *pvParameters)
     {
       Serial.println("Entering light sleep due to inactivity");
       isAwake = false;
-      Zigbee.factoryReset(false);
-      esp_sleep_enable_gpio_wakeup(); 
-      digitalWrite(BLUE_LED_PIN, HIGH); // Turn off LED
+#if defined(IOT_BUTTON_V1)
+      digitalWrite(BLUE_LED_PIN, HIGH);
+#elif defined(IOT_BUTTON_V2)
+      digitalWrite(BLUE_LED_PIN, HIGH);
+      digitalWrite(RED_LED_PIN, HIGH);
+#endif
+      esp_sleep_enable_gpio_wakeup();
       esp_light_sleep_start();
 
       Serial.println("Woke up from light sleep");
-      
+
       Serial.begin(115200);
       setupZigbee();
       isAwake = true;
-      digitalWrite(BLUE_LED_PIN, LOW); // Turn on LED
     }
     vTaskDelay(10000 / portTICK_PERIOD_MS); // Check every 10 seconds
   }
@@ -401,7 +525,12 @@ void sleepTask(void *pvParameters)
 void setupZigbee()
 {
   // Set Zigbee device information
+#if defined(IOT_BUTTON_V1)
   zbIoTButton.setManufacturerAndModel("Seeed Studio", "IoT_Button");
+#elif defined(IOT_BUTTON_V2)
+  zbIoTButton.setManufacturerAndModel("Seeed Studio", "IoT Button V2");
+  zbIoTButton.setPowerSource(ZB_POWER_SOURCE_BATTERY, 100);
+#endif
   ZigbeeHASwitch1.setManufacturerAndModel("Seeed Studio", "Switch1");
   ZigbeeHASwitch2.setManufacturerAndModel("Seeed Studio", "Switch2");
   ZigbeeHASwitch3.setManufacturerAndModel("Seeed Studio", "Switch3");
@@ -413,8 +542,8 @@ void setupZigbee()
   Zigbee.addEndpoint(&ZigbeeHASwitch3);
   esp_zb_cfg_t zigbeeConfig = ZIGBEE_DEFAULT_ED_CONFIG();
   zigbeeConfig.nwk_cfg.zed_cfg.keep_alive = 10000;
-  
-  Zigbee.setTimeout(10000);  // Set timeout for Zigbee Begin to 10s (default is 30s)
+
+  Zigbee.setTimeout(10000); // Set timeout for Zigbee Begin to 10s (default is 30s)
   Serial.println("Starting Zigbee...");
   if (!Zigbee.begin(&zigbeeConfig, false))
   {
@@ -442,6 +571,9 @@ void setup()
 
   pinMode(RGB_ENABLE_PIN, OUTPUT);
   digitalWrite(RGB_ENABLE_PIN, HIGH);
+#if defined(IOT_BUTTON_V2)
+  pinMode(BATTERY_ENABLE_PIN, OUTPUT);
+#endif
 
   // Initialize LED
   FastLED.addLeds<WS2812, RGB_PIN, GRB>(rgbs, NUM_RGBS);
@@ -461,9 +593,12 @@ void setup()
 
   // Create FreeRTOS tasks
   xTaskCreate(buttonTask, "ButtonTask", 2048, NULL, 2, NULL);
-  xTaskCreate(blueLedTask, "BlueLedTask", 1024, NULL, 1, NULL);
+  xTaskCreate(ledTask, "LedTask", 1024, NULL, 1, NULL);
   xTaskCreate(mainTask, "MainTask", 2048, NULL, 1, NULL);
   xTaskCreate(sleepTask, "SleepTask", 2048, NULL, 1, NULL);
+#if defined(IOT_BUTTON_V2)
+  xTaskCreate(batteryTask, "BatteryTask", 2048, NULL, 1, NULL);
+#endif
 }
 
 /********************* Arduino Loop **************************/
@@ -472,10 +607,10 @@ void loop()
   if (!Zigbee.connected())
   {
     Serial.print(".");
-    delay(100);
+    vTaskDelay(100);
   }
   else
   {
-    delay(1000);
+    vTaskDelay(1000);
   }
 }

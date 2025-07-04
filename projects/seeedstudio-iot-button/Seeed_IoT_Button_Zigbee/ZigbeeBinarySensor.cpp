@@ -6,10 +6,12 @@ esp_zb_cluster_list_t *zigbee_binary_clusters_create(zigbee_binary_sensor_cfg_t 
   esp_zb_basic_cluster_cfg_t *basic_cfg = binary_sensor ? &(binary_sensor->basic_cfg) : NULL;
   esp_zb_identify_cluster_cfg_t *identify_cfg = binary_sensor ? &(binary_sensor->identify_cfg) : NULL;
   esp_zb_ias_zone_cluster_cfg_t *ias_zone_cfg = binary_sensor ? &(binary_sensor->ias_zone_cfg) : NULL;
+  esp_zb_power_config_cluster_cfg_t *power_config_cfg = binary_sensor ? &(binary_sensor->power_config_cfg) : NULL;
   esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
   esp_zb_cluster_list_add_basic_cluster(cluster_list, esp_zb_basic_cluster_create(basic_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
   esp_zb_cluster_list_add_identify_cluster(cluster_list, esp_zb_identify_cluster_create(identify_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
   esp_zb_cluster_list_add_ias_zone_cluster(cluster_list, esp_zb_ias_zone_cluster_create(ias_zone_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+  esp_zb_cluster_list_add_power_config_cluster(cluster_list,esp_zb_power_config_cluster_create(power_config_cfg),ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
   return cluster_list;
 }
 
