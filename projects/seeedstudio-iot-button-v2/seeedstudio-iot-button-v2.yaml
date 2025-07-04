@@ -93,11 +93,11 @@ output:
     id: battery_enable_pin
     inverted: False
   - platform: gpio
-    pin: GPIO3
+    pin: GPIO14
     id: red_led_pin
     inverted: False
   - platform: gpio
-    pin: GPIO14
+    pin: GPIO3
     id: blue_led_pin
     inverted: False
   - platform: gpio
