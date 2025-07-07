@@ -8,10 +8,13 @@
 #include <freertos/task.h>
 #include <freertos/queue.h>
 #include <esp_sleep.h>
+#include "driver/rtc_io.h"
 
 #if !defined(IOT_BUTTON_V1) && !defined(IOT_BUTTON_V2)
 #define IOT_BUTTON_V2
 #endif
+
+#define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)
 
 /* Hardware Configuration */
 #if defined(IOT_BUTTON_V1)
@@ -29,6 +32,10 @@ const uint8_t RGB_PIN = 19;
 const uint8_t NUM_RGBS = 1;
 const uint8_t BATTERY_ADC_PIN = 1;
 const uint8_t BATTERY_ENABLE_PIN = 0;
+const int SAMPLE_COUNT = 10;
+const float MIN_VOLTAGE = 2.75;
+const float MAX_VOLTAGE = 4.2;
+const float ALPHA = 0.1; // Smoothing factor for EMA
 #endif
 
 /* Button Configuration */
@@ -63,9 +70,9 @@ ZigbeeBinary zbSwitch1 = ZigbeeBinary(SWITCH1_ENDPOINT);
 ZigbeeBinary zbSwitch2 = ZigbeeBinary(SWITCH2_ENDPOINT);
 ZigbeeBinary zbSwitch3 = ZigbeeBinary(SWITCH3_ENDPOINT);
 bool buttonStatus = false;
-bool switch1Status = false;
-bool switch2Status = false;
-bool switch3Status = false;
+RTC_DATA_ATTR bool switch1Status = false;
+RTC_DATA_ATTR bool switch2Status = false;
+RTC_DATA_ATTR bool switch3Status = false;
 
 /* Global Variables */
 QueueHandle_t eventQueue;
@@ -77,6 +84,7 @@ bool clickSequenceActive = false; // Tracks if a click sequence is in progress
 TaskHandle_t clickTimeoutTaskHandle = NULL;
 uint32_t lastActivityTime = 0; // Tracks last button activity for sleep
 volatile bool isAwake = true;  // Tracks device awake/sleep state
+bool lastConnected = false;    // Track previous Zigbee connection state
 
 #if defined(IOT_BUTTON_V2)
 float emaVoltage = 0.0;
@@ -133,6 +141,59 @@ void ledRainbow()
   rgbs[0] = CRGB::Black;
   FastLED.show();
 }
+
+#if defined(IOT_BUTTON_V2)
+/********************* Battery Functions **************************/
+void measureBattery()
+{
+  digitalWrite(BATTERY_ENABLE_PIN, HIGH);
+  vTaskDelay(10 / portTICK_PERIOD_MS); // Wait for stabilization
+
+  // Take multiple samples and compute average
+  float adcSum = 0;
+  for (int i = 0; i < SAMPLE_COUNT; i++)
+  {
+    adcSum += analogRead(BATTERY_ADC_PIN);
+    vTaskDelay(5 / portTICK_PERIOD_MS); // Small delay between samples
+  }
+  digitalWrite(BATTERY_ENABLE_PIN, LOW);
+
+  float adcAverage = adcSum / SAMPLE_COUNT;
+  float voltage = (adcAverage / 4095.0) * 3.3 * 3.0; // Apply divider ratio
+
+  // Update EMA
+  if (emaVoltage == 0.0)
+  {
+    emaVoltage = voltage;
+  }
+  else
+  {
+    emaVoltage = ALPHA * voltage + (1 - ALPHA) * emaVoltage;
+  }
+
+  // Calculate battery percentage from emaVoltage
+  float localBatteryPercentage = (emaVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE) * 100;
+  if (localBatteryPercentage < 0)
+    localBatteryPercentage = 0;
+  if (localBatteryPercentage > 100)
+    localBatteryPercentage = 100;
+
+  // Update global battery percentage
+  batteryPercentage = localBatteryPercentage;
+
+  // Print voltage and percentage
+  if (voltage < MIN_VOLTAGE)
+  {
+    Serial.printf("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
+                  voltage, emaVoltage, localBatteryPercentage);
+  }
+  else
+  {
+    Serial.printf("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
+                  voltage, emaVoltage, localBatteryPercentage);
+  }
+}
+#endif
 
 /********************* FreeRTOS Tasks **************************/
 void clickTimeoutTask(void *pvParameters)
@@ -428,23 +489,23 @@ void ledTask(void *pvParameters)
   while (1)
   {
     if (isAwake)
-  {
-    bool isLowBattery = (batteryPercentage < 20.0);
-    bool isConnected = Zigbee.connected();
-    uint8_t activeLedPin = isLowBattery ? RED_LED_PIN : BLUE_LED_PIN;
-    uint8_t inactiveLedPin = isLowBattery ? BLUE_LED_PIN : RED_LED_PIN;
-
-    if (isConnected)
     {
+      bool isLowBattery = (batteryPercentage < 20.0);
+      bool isConnected = Zigbee.connected();
+      uint8_t activeLedPin = isLowBattery ? RED_LED_PIN : BLUE_LED_PIN;
+      uint8_t inactiveLedPin = isLowBattery ? BLUE_LED_PIN : RED_LED_PIN;
+
+      if (isConnected)
+      {
         digitalWrite(activeLedPin, LOW);
         digitalWrite(inactiveLedPin, HIGH);
-    }
-    else
-    {
-      ledState = !ledState;
-      digitalWrite(activeLedPin, ledState ? LOW : HIGH);
-      digitalWrite(inactiveLedPin, HIGH);
-    }
+      }
+      else
+      {
+        ledState = !ledState;
+        digitalWrite(activeLedPin, ledState ? LOW : HIGH);
+        digitalWrite(inactiveLedPin, HIGH);
+      }
     }
     else
     {
@@ -460,66 +521,16 @@ void ledTask(void *pvParameters)
 void batteryTask(void *pvParameters)
 {
   pinMode(BATTERY_ENABLE_PIN, OUTPUT);
-  const int SAMPLE_COUNT = 10;
-  const float MIN_VOLTAGE = 2.75;
-  const float MAX_VOLTAGE = 4.2;
-  const float ALPHA = 0.1; // Smoothing factor for EMA
 
   while (1)
   {
-    digitalWrite(BATTERY_ENABLE_PIN, HIGH);
-    vTaskDelay(10 / portTICK_PERIOD_MS); // Wait for stabilization
-
-    // Take multiple samples and compute average
-    float adcSum = 0;
-    for (int i = 0; i < SAMPLE_COUNT; i++)
+    measureBattery();
+    if (Zigbee.connected())
     {
-      adcSum += analogRead(BATTERY_ADC_PIN);
-      vTaskDelay(5 / portTICK_PERIOD_MS); // Small delay between samples
+      zbIoTButton.setBatteryVoltage((uint8_t)(emaVoltage * 100)); // Unit: 0.01V
+      zbIoTButton.setBatteryPercentage((uint8_t)batteryPercentage);
+      zbIoTButton.reportBatteryPercentage();
     }
-    digitalWrite(BATTERY_ENABLE_PIN, LOW);
-
-    float adcAverage = adcSum / SAMPLE_COUNT;
-    float voltage = (adcAverage / 4095.0) * 3.3 * 3.0; // Apply divider ratio
-
-    // Update EMA
-    if (emaVoltage == 0.0)
-    {
-      emaVoltage = voltage;
-    }
-    else
-    {
-      emaVoltage = ALPHA * voltage + (1 - ALPHA) * emaVoltage;
-    }
-
-    // Calculate battery percentage from emaVoltage
-    float localBatteryPercentage = (emaVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE) * 100;
-    if (localBatteryPercentage < 0)
-      localBatteryPercentage = 0;
-    if (localBatteryPercentage > 100)
-      localBatteryPercentage = 100;
-
-    // Update global battery percentage
-    batteryPercentage = localBatteryPercentage;
-
-    // Print voltage and percentage
-    if (voltage < MIN_VOLTAGE)
-    {
-      Serial.printf("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
-                    voltage, emaVoltage, localBatteryPercentage);
-    }
-    else
-    {
-      Serial.printf("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
-                    voltage, emaVoltage, localBatteryPercentage);
-      if (Zigbee.connected())
-      {
-        zbIoTButton.setBatteryVoltage((uint8_t)voltage);
-        zbIoTButton.setBatteryPercentage((uint8_t)batteryPercentage);
-        zbIoTButton.reportBatteryPercentage();
-      }
-    }
-
     vTaskDelay(30000 / portTICK_PERIOD_MS); // Check every 30 seconds
   }
 }
@@ -531,30 +542,50 @@ void sleepTask(void *pvParameters)
   {
     if (isAwake && (millis() - lastActivityTime > INACTIVITY_TIMEOUT))
     {
-      Serial.println("Entering light sleep due to inactivity");
-      isAwake = false;
+      Serial.println("Entering sleep due to inactivity");
 #if defined(IOT_BUTTON_V1)
+      isAwake = false;
       digitalWrite(BLUE_LED_PIN, HIGH);
-#elif defined(IOT_BUTTON_V2)
-      digitalWrite(BLUE_LED_PIN, HIGH);
-      digitalWrite(RED_LED_PIN, HIGH);
-#endif
       esp_sleep_enable_gpio_wakeup();
       digitalWrite(BLUE_LED_PIN, HIGH); // Turn off LED
       esp_light_sleep_start();
-
       Serial.println("Woke up from light sleep");
-
       Serial.begin(115200);
+      Zigbee.factoryReset();
       setupZigbee();
       isAwake = true;
       digitalWrite(BLUE_LED_PIN, LOW); // Turn on LED
+#elif defined(IOT_BUTTON_V2)
+      digitalWrite(BLUE_LED_PIN, HIGH);
+      digitalWrite(RED_LED_PIN, HIGH);
+      static gpio_num_t WAKEUP_GPIO = (gpio_num_t)BUTTON_PIN;
+      esp_sleep_enable_ext1_wakeup_io(BUTTON_PIN_BITMASK(WAKEUP_GPIO), ESP_EXT1_WAKEUP_ANY_LOW);
+      rtc_gpio_pulldown_en(WAKEUP_GPIO);
+      rtc_gpio_pullup_dis(WAKEUP_GPIO);
+      esp_deep_sleep_start();
+#endif
     }
     vTaskDelay(10000 / portTICK_PERIOD_MS); // Check every 10 seconds
   }
 }
 
 /********************* Zigbee Functions **************************/
+void onZigbeeConnected()
+{
+#if defined(IOT_BUTTON_V2)
+  measureBattery();                                           // Ensure latest battery data
+  zbIoTButton.setBatteryVoltage((uint8_t)(emaVoltage * 100)); // Unit: 0.01V
+  zbIoTButton.setBatteryPercentage((uint8_t)batteryPercentage);
+  zbIoTButton.reportBatteryPercentage();
+#endif
+  zbSwitch1.setBinaryInput(switch1Status);
+  zbSwitch1.reportBinaryInput();
+  zbSwitch2.setBinaryInput(switch2Status);
+  zbSwitch2.reportBinaryInput();
+  zbSwitch3.setBinaryInput(switch3Status);
+  zbSwitch3.reportBinaryInput();
+}
+
 void setupZigbee()
 {
 
@@ -578,7 +609,7 @@ void setupZigbee()
   zbIoTButton.setManufacturerAndModel("Seeed Studio", "IoT Button V2");
   zbIoTButton.setPowerSource(ZB_POWER_SOURCE_BATTERY, 100);
 #endif
- 
+
   // Add endpoint to Zigbee Core
   Zigbee.addEndpoint(&zbIoTButton);
   Zigbee.addEndpoint(&zbSwitch1);
@@ -649,7 +680,18 @@ void setup()
 /********************* Arduino Loop **************************/
 void loop()
 {
-  if (!Zigbee.connected())
+  bool currentConnected = Zigbee.connected();
+  if (currentConnected && !lastConnected)
+  {
+    Serial.println("Zigbee connected!");
+    onZigbeeConnected();
+  }
+  else if (!currentConnected && lastConnected)
+  {
+    Serial.println("Zigbee disconnected!");
+  }
+  lastConnected = currentConnected;
+  if (!currentConnected)
   {
     Serial.print(".");
     vTaskDelay(100 / portTICK_PERIOD_MS);
