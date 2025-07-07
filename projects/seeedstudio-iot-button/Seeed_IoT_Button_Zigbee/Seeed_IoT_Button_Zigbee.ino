@@ -91,57 +91,6 @@ float emaVoltage = 0.0;
 float batteryPercentage = 100.0;
 #endif
 
-/********************* LED Functions **************************/
-void ledBlink()
-{
-  uint8_t rand = random8();
-  for (int i = 0; i < 2; i++)
-  {
-    rgbs[0] = CHSV(rand, 255, 255); // Random color
-    FastLED.show();
-    vTaskDelay(200 / portTICK_PERIOD_MS);
-    rgbs[0] = CRGB::Black;
-    FastLED.show();
-    vTaskDelay(200 / portTICK_PERIOD_MS);
-  }
-}
-
-void ledBreathing()
-{
-  uint8_t hue = random8();    // Random color hue
-  for (int i = 0; i < 1; i++) // one breathing cycle
-  {
-    // Brighten
-    for (int brightness = 0; brightness <= 255; brightness += 5)
-    {
-      rgbs[0] = CHSV(hue, 255, brightness);
-      FastLED.show();
-      vTaskDelay(20 / portTICK_PERIOD_MS);
-    }
-    // Dim
-    for (int brightness = 255; brightness >= 0; brightness -= 5)
-    {
-      rgbs[0] = CHSV(hue, 255, brightness);
-      FastLED.show();
-      vTaskDelay(20 / portTICK_PERIOD_MS);
-    }
-  }
-  rgbs[0] = CRGB::Black;
-  FastLED.show();
-}
-
-void ledRainbow()
-{
-  for (int hue = 0; hue < 128; hue += 10)
-  {
-    rgbs[0] = CHSV(hue, 255, 255);
-    FastLED.show();
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-  }
-  rgbs[0] = CRGB::Black;
-  FastLED.show();
-}
-
 #if defined(IOT_BUTTON_V2)
 /********************* Battery Functions **************************/
 void measureBattery()
@@ -196,6 +145,59 @@ void measureBattery()
 #endif
 
 /********************* FreeRTOS Tasks **************************/
+void breathingLedTask(void *pvParameters)
+{
+  uint8_t hue = random8();    // Random color hue
+  for (int i = 0; i < 1; i++) // one breathing cycle
+  {
+    // Brighten
+    for (int brightness = 0; brightness <= 255; brightness += 5)
+    {
+      rgbs[0] = CHSV(hue, 255, brightness);
+      FastLED.show();
+      vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+    // Dim
+    for (int brightness = 255; brightness >= 0; brightness -= 5)
+    {
+      rgbs[0] = CHSV(hue, 255, brightness);
+      FastLED.show();
+      vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+  }
+  rgbs[0] = CRGB::Black;
+  FastLED.show();
+  vTaskDelete(NULL);
+}
+
+void blinkLedTask(void *pvParameters)
+{
+  uint8_t rand = random8();
+  for (int i = 0; i < 2; i++)
+  {
+    rgbs[0] = CHSV(rand, 255, 255); // Random color
+    FastLED.show();
+    vTaskDelay(200 / portTICK_PERIOD_MS);
+    rgbs[0] = CRGB::Black;
+    FastLED.show();
+    vTaskDelay(200 / portTICK_PERIOD_MS);
+  }
+  vTaskDelete(NULL);
+}
+
+void rainbowLedTask(void *pvParameters)
+{
+   for (int hue = 0; hue < 128; hue += 10)
+  {
+    rgbs[0] = CHSV(hue, 255, 255);
+    FastLED.show();
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+  rgbs[0] = CRGB::Black;
+  FastLED.show();
+  vTaskDelete(NULL);
+}
+
 void clickTimeoutTask(void *pvParameters)
 {
   uint32_t localClickCount = clickCount;
@@ -410,7 +412,7 @@ void mainTask(void *pvParameters)
           zbSwitch1.setBinaryInput(switch1Status);
           zbSwitch1.reportBinaryInput();
         }
-        ledBreathing();
+        xTaskCreate(breathingLedTask, "BreathingLed", 2048, NULL, 1, NULL);
         break;
 
       case ButtonEvent::DOUBLE_CLICK:
@@ -421,7 +423,7 @@ void mainTask(void *pvParameters)
           zbSwitch2.setBinaryInput(switch2Status);
           zbSwitch2.reportBinaryInput();
         }
-        ledBlink();
+        xTaskCreate(blinkLedTask, "BlinkLed", 2048, NULL, 1, NULL);
         break;
 
       case ButtonEvent::TRIPLE_CLICK:
@@ -439,12 +441,12 @@ void mainTask(void *pvParameters)
           zbSwitch3.setBinaryInput(switch3Status);
           zbSwitch3.reportBinaryInput();
         }
-        ledRainbow();
+        xTaskCreate(rainbowLedTask, "RainbowLed", 2048, NULL, 1, NULL);
         break;
 
       case ButtonEvent::LONG_PRESS:
         Serial.println("Long Press: Reset Zigbee");
-        delay(1000);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
         Zigbee.factoryReset();
         break;
       }
@@ -666,15 +668,14 @@ void setup()
   }
 
   // Create FreeRTOS tasks
-  xTaskCreate(buttonTask, "ButtonTask", 2048, NULL, 2, NULL);
-  xTaskCreate(ledTask, "LedTask", 1024, NULL, 1, NULL);
-  xTaskCreate(mainTask, "MainTask", 2048, NULL, 1, NULL);
-  xTaskCreate(sleepTask, "SleepTask", 2048, NULL, 1, NULL);
+  xTaskCreate(buttonTask, "ButtonTask", 2048, NULL, 4, NULL);
+  xTaskCreate(ledTask, "LedTask", 1024, NULL, 0, NULL);
+  xTaskCreate(mainTask, "MainTask", 2048, NULL, 3, NULL);
+  xTaskCreate(sleepTask, "SleepTask", 2048, NULL, 2, NULL);
 #if defined(IOT_BUTTON_V2)
   xTaskCreate(batteryTask, "BatteryTask", 2048, NULL, 1, NULL);
 #endif
-
-  ledRainbow();
+  xTaskCreate(rainbowLedTask, "RainbowLed", 2048, NULL, 1, NULL);
 }
 
 /********************* Arduino Loop **************************/
