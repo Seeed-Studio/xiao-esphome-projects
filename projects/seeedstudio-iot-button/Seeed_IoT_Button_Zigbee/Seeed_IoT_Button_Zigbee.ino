@@ -39,11 +39,11 @@ const float ALPHA = 0.1; // Smoothing factor for EMA
 #endif
 
 /* Button Configuration */
-const uint32_t MULTI_CLICK_TIME = 300;         // Maximum time between clicks for multi-click (ms)
-const uint32_t SHORT_LONG_PRESS_TIME = 1000;   // Minimum time for short long press (1 second)
-const uint32_t LONG_PRESS_TIME = 5000;         // Minimum time for long press (5 seconds)
-const uint32_t DEBOUNCE_TIME = 20;             // Debounce time (ms)
-const uint32_t INACTIVITY_TIMEOUT = 60 * 1000; // 1 minutes inactivity timeout (ms)
+const uint32_t MULTI_CLICK_TIME = 300;             // Maximum time between clicks for multi-click (ms)
+const uint32_t SHORT_LONG_PRESS_TIME = 1000;       // Minimum time for short long press (1 second)
+const uint32_t LONG_PRESS_TIME = 5000;             // Minimum time for long press (5 seconds)
+const uint32_t DEBOUNCE_TIME = 20;                 // Debounce time (ms)
+const uint32_t INACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes inactivity timeout (ms)
 
 /* LED Configuration */
 CRGB rgbs[NUM_RGBS];
@@ -404,9 +404,9 @@ void mainTask(void *pvParameters)
 
       case ButtonEvent::SINGLE_CLICK:
         Serial.println("Single Click: Breathing LED");
+        switch1Status = !switch1Status;
         if (Zigbee.connected())
         {
-          switch1Status = !switch1Status;
           zbSwitch1.setBinaryInput(switch1Status);
           zbSwitch1.reportBinaryInput();
         }
@@ -415,9 +415,9 @@ void mainTask(void *pvParameters)
 
       case ButtonEvent::DOUBLE_CLICK:
         Serial.println("Double Click: Blink LED");
+        switch2Status = !switch2Status;
         if (Zigbee.connected())
         {
-          switch2Status = !switch2Status;
           zbSwitch2.setBinaryInput(switch2Status);
           zbSwitch2.reportBinaryInput();
         }
@@ -433,9 +433,9 @@ void mainTask(void *pvParameters)
 
       case ButtonEvent::SHORT_LONG_PRESS:
         Serial.println("Short Long Press: Rainbow LED");
+        switch3Status = !switch3Status;
         if (Zigbee.connected())
         {
-          switch3Status = !switch3Status;
           zbSwitch3.setBinaryInput(switch3Status);
           zbSwitch3.reportBinaryInput();
         }
