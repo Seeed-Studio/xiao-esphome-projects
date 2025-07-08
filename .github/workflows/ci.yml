@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: Building ${{ matrix.file }} / ${{ matrix.esphome-version }}
+  ci-esphome:
+    name: Building ESPHome ${{ matrix.file }} / ${{ matrix.esphome-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -25,6 +25,8 @@ jobs:
           - file: projects/xiao_2_channel_wifi_ac_energy_meter/xiao_2_channel_wifi_ac_energy_meter
             esphome-version: stable
           - file: projects/seeedstudio-iot-button/seeedstudio-iot-button
+            esphome-version: stable
+          - file: projects/seeedstudio-iot-button/seeedstudio-iot-button-v2
             esphome-version: stable
           - file: projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor
             esphome-version: stable
@@ -41,3 +43,37 @@ jobs:
         with:
           yaml-file: ${{ matrix.file }}.yaml
           version: ${{ matrix.esphome-version }}
+
+  ci-arduino:
+    name: Building Zigbee Arduino ${{ matrix.variant }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [IOT_BUTTON_V1, IOT_BUTTON_V2]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4.2.2
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v1
+      - name: Install ESP32 platform
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.2.1
+      - name: Install libraries
+        run: |
+          arduino-cli lib install FastLED
+          # Add Zigbee library installation here (replace with actual library name or source)
+          # Example: arduino-cli lib install ZigbeeLibrary
+      - name: Compile Zigbee Arduino
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32c6 \
+            --build-property "build.extra_flags=-D${{ matrix.variant }} -DZIGBEE_MODE_ED -DESP32" \
+            projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/Seeed_IoT_Button_Zigbee.ino \
+            --output-dir ./output/zigbee-${{ matrix.variant }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zigbee-firmware-${{ matrix.variant }}
+          path: ./output/zigbee-${{ matrix.variant }}/*.bin
+          retention-days: 1

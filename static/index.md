@@ -14,11 +14,17 @@ Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects u
 - **Features**: Supports manual calibration and energy-saving deep sleep, ideal for flower pots or planters.
 <esp-web-install-button manifest="firmware/xiao-soil-moisture.manifest.json"></esp-web-install-button>
 
-## Seeed Studio IoT Button
+## Seeed Studio IoT Button (V1)
 
-- **Description**: Multifunctional IoT button supporting ESPHome and Zigbee.
-- **Features**: Seamless integration with smart home systems.
+- **Description**: Multifunctional IoT button supporting ESPHome (WiFi) and Zigbee (Arduino).
+- **Features**: Single, double, and long press actions; RGB LED feedback; light sleep after 2 minutes; Home Assistant integration (ESPHome) or Zigbee network support.
 <esp-web-install-button manifest="firmware/seeedstudio-iot-button.manifest.json"></esp-web-install-button>
+
+## Seeed Studio IoT Button (V2)
+
+- **Description**: Enhanced IoT button supporting ESPHome (WiFi) and Zigbee (Arduino).
+- **Features**: Single, double, and long press actions; RGB LED feedback; battery monitoring; red/blue LEDs; light sleep (ESPHome) or deep sleep (Zigbee) after 2 minutes; Home Assistant or Zigbee integration.
+<esp-web-install-button manifest="firmware/seeedstudio-iot-button-v2.manifest.json"></esp-web-install-button>
 
 ## XIAO Smart IR Mate
 
