@@ -562,8 +562,6 @@ void sleepTask(void *pvParameters)
       digitalWrite(RED_LED_PIN, HIGH);
       static gpio_num_t WAKEUP_GPIO = (gpio_num_t)BUTTON_PIN;
       esp_sleep_enable_ext1_wakeup_io(BUTTON_PIN_BITMASK(WAKEUP_GPIO), ESP_EXT1_WAKEUP_ANY_LOW);
-      rtc_gpio_pulldown_en(WAKEUP_GPIO);
-      rtc_gpio_pullup_dis(WAKEUP_GPIO);
       esp_deep_sleep_start();
 #endif
     }
