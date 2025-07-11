@@ -550,6 +550,7 @@ void sleepTask(void *pvParameters)
       digitalWrite(BLUE_LED_PIN, HIGH);
       esp_sleep_enable_gpio_wakeup();
       digitalWrite(BLUE_LED_PIN, HIGH); // Turn off LED
+      gpio_wakeup_enable((gpio_num_t)BUTTON_PIN, GPIO_INTR_LOW_LEVEL);
       esp_light_sleep_start();
       Serial.println("Woke up from light sleep");
       Serial.begin(115200);
@@ -641,8 +642,6 @@ void setup()
 
   // Initialize button pin
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-
-  gpio_wakeup_enable((gpio_num_t)BUTTON_PIN, GPIO_INTR_LOW_LEVEL);
 
   pinMode(RGB_ENABLE_PIN, OUTPUT);
   digitalWrite(RGB_ENABLE_PIN, HIGH);
