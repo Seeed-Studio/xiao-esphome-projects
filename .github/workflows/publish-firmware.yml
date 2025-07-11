@@ -56,8 +56,8 @@ jobs:
           arduino-cli lib install FastLED
       - name: Compile Zigbee Arduino
         run: |
-          arduino-cli compile --fqbn esp32:esp32:esp32c6 \
-            --build-property "build.extra_flags=-D${{ matrix.variant }} -DZIGBEE_MODE_ED -DESP32" \
+          arduino-cli compile --fqbn esp32:esp32:esp32c6:PartitionScheme=zigbee,ZigbeeMode=ed \
+            --build-property "build.extra_flags=-D${{ matrix.variant }} -DESP32 -DZIGBEE_MODE_ED -lesp_zb_api.ed -lzboss_stack.ed -lzboss_port.native" \
             projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/Seeed_IoT_Button_Zigbee.ino \
             --output-dir ./output/zigbee-${{ matrix.variant }}
       - name: Upload artifact
