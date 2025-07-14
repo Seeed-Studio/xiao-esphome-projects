@@ -10,6 +10,17 @@
 #include <esp_sleep.h>
 #include "driver/rtc_io.h"
 
+// Logging macro switch
+#define ENABLE_LOGGING  // Comment out to disable logging
+
+#ifdef ENABLE_LOGGING
+#define LOG_PRINTLN(x) Serial.println(x)
+#define LOG_PRINTF(x, ...) Serial.printf(x, __VA_ARGS__)
+#else
+#define LOG_PRINTLN(x)
+#define LOG_PRINTF(x, ...)
+#endif
+
 #if !defined(IOT_BUTTON_V1) && !defined(IOT_BUTTON_V2)
 #define IOT_BUTTON_V2
 #endif
@@ -115,11 +126,12 @@ void measureBattery()
   {
     emaVoltage = 0.0;
     batteryPercentage = 0.0;
-    Serial.printf("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
-                  voltage, emaVoltage, batteryPercentage);
+    LOG_PRINTF("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
+               voltage, emaVoltage, batteryPercentage);
   }
   else
   {
+    emaVoltage=emaVoltage == 0.0?voltage:ALPHA * voltage + (1 - ALPHA) * emaVoltage;
     // Update EMA
     if (emaVoltage == 0.0)
     {
@@ -140,8 +152,8 @@ void measureBattery()
     // Update global battery percentage
     batteryPercentage = localBatteryPercentage;
 
-    Serial.printf("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
-                  voltage, emaVoltage, localBatteryPercentage);
+    LOG_PRINTF("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
+               voltage, emaVoltage, localBatteryPercentage);
   }
 }
 #endif
@@ -149,7 +161,7 @@ void measureBattery()
 /********************* FreeRTOS Tasks **************************/
 void breathingLedTask(void *pvParameters)
 {
-  Serial.println("Breathing LED");
+  LOG_PRINTLN("Breathing LED");
   uint8_t hue = random8();    // Random color hue
   for (int i = 0; i < 1; i++) // one breathing cycle
   {
@@ -175,7 +187,7 @@ void breathingLedTask(void *pvParameters)
 
 void blinkLedTask(void *pvParameters)
 {
-  Serial.println("Blink LED");
+  LOG_PRINTLN("Blink LED");
   uint8_t rand = random8();
   for (int i = 0; i < 2; i++)
   {
@@ -191,7 +203,7 @@ void blinkLedTask(void *pvParameters)
 
 void rainbowLedTask(void *pvParameters)
 {
-  Serial.println("Rainbow LED");
+  LOG_PRINTLN("Rainbow LED");
   for (int hue = 0; hue < 128; hue += 10)
   {
     rgbs[0] = CHSV(hue, 255, 255);
@@ -387,7 +399,7 @@ void mainTask(void *pvParameters)
         if (buttonStatus == false)
         {
           buttonStatus = true;
-          Serial.println("Button Pressed");
+          LOG_PRINTLN("Button Pressed");
           if (zigbeeInitialized && Zigbee.connected())
           {
             zbIoTButton.setBinaryInput(buttonStatus);
@@ -400,7 +412,7 @@ void mainTask(void *pvParameters)
         if (buttonStatus == true)
         {
           buttonStatus = false;
-          Serial.println("Button Released");
+          LOG_PRINTLN("Button Released");
           if (zigbeeInitialized && Zigbee.connected())
           {
             zbIoTButton.setBinaryInput(buttonStatus);
@@ -410,7 +422,7 @@ void mainTask(void *pvParameters)
         break;
 
       case ButtonEvent::SINGLE_CLICK:
-        Serial.println("Single Click");
+        LOG_PRINTLN("Single Click");
         switch1Status = !switch1Status;
         if (zigbeeInitialized && Zigbee.connected())
         {
@@ -421,7 +433,7 @@ void mainTask(void *pvParameters)
         break;
 
       case ButtonEvent::DOUBLE_CLICK:
-        Serial.println("Double Click");
+        LOG_PRINTLN("Double Click");
         switch2Status = !switch2Status;
         if (zigbeeInitialized && Zigbee.connected())
         {
@@ -432,7 +444,7 @@ void mainTask(void *pvParameters)
         break;
 
       case ButtonEvent::TRIPLE_CLICK:
-        Serial.println("Triple Click");
+        LOG_PRINTLN("Triple Click");
         if (zigbeeInitialized && Zigbee.connected())
         {
           // Add any specific Zigbee action here if needed
@@ -440,7 +452,7 @@ void mainTask(void *pvParameters)
         break;
 
       case ButtonEvent::SHORT_LONG_PRESS:
-        Serial.println("Short Long Press");
+        LOG_PRINTLN("Short Long Press");
         switch3Status = !switch3Status;
         if (zigbeeInitialized && Zigbee.connected())
         {
@@ -451,7 +463,7 @@ void mainTask(void *pvParameters)
         break;
 
       case ButtonEvent::LONG_PRESS:
-        Serial.println("Long Press\nReset Zigbee");
+        LOG_PRINTLN("Long Press\nReset Zigbee");
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         if (zigbeeInitialized)
         {
@@ -553,7 +565,7 @@ void sleepTask(void *pvParameters)
   {
     if (isAwake && (millis() - lastActivityTime > INACTIVITY_TIMEOUT))
     {
-      Serial.println("Entering sleep due to inactivity");
+      LOG_PRINTLN("Entering sleep due to inactivity");
 #if defined(IOT_BUTTON_V1)
       isAwake = false;
       digitalWrite(BLUE_LED_PIN, HIGH);
@@ -563,7 +575,7 @@ void sleepTask(void *pvParameters)
       digitalWrite(RGB_ENABLE_PIN, LOW);
       esp_light_sleep_start();
       digitalWrite(RGB_ENABLE_PIN, HIGH);
-      Serial.println("Woke up from light sleep");
+      LOG_PRINTLN("Woke up from light sleep");
       Serial.begin(115200);
       if (zigbeeInitialized)
       {
@@ -639,16 +651,16 @@ void setupZigbee()
   zigbeeConfig.nwk_cfg.zed_cfg.keep_alive = 10000;
 
   Zigbee.setTimeout(10000); // Set timeout for Zigbee Begin to 10s (default is 30s)
-  Serial.println("Starting Zigbee...");
+  LOG_PRINTLN("Starting Zigbee...");
   if (!Zigbee.begin(&zigbeeConfig, false))
   {
-    Serial.println("Zigbee failed to start!");
-    Serial.println("Please try holding down the 5S key for a long time to reset zigbee");
+    LOG_PRINTLN("Zigbee failed to start!");
+    LOG_PRINTLN("Please try holding down the 5S key for a long time to reset zigbee");
     zigbeeInitialized = false;
   }
   else
   {
-    Serial.println("Zigbee started successfully!");
+    LOG_PRINTLN("Zigbee started successfully!");
     zigbeeInitialized = true;
   }
 }
@@ -658,7 +670,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  Serial.println("Zigbee IoT Button Starting...");
+  LOG_PRINTLN("Zigbee IoT Button Starting...");
 
   // Initialize button pin
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -680,7 +692,7 @@ void setup()
   eventQueue = xQueueCreate(10, sizeof(ButtonEvent));
   if (eventQueue == NULL)
   {
-    Serial.println("Failed to create event queue!");
+    LOG_PRINTLN("Failed to create event queue!");
     ESP.restart();
   }
 
@@ -703,17 +715,17 @@ void loop()
     bool currentConnected = Zigbee.connected();
     if (currentConnected && !lastConnected)
     {
-      Serial.println("Zigbee connected!");
+      LOG_PRINTLN("Zigbee connected!");
       onZigbeeConnected();
     }
     else if (!currentConnected && lastConnected)
     {
-      Serial.println("Zigbee disconnected!");
+      LOG_PRINTLN("Zigbee disconnected!");
     }
     lastConnected = currentConnected;
     if (!currentConnected)
     {
-      Serial.print(".");
+      LOG_PRINTLN(".");
       vTaskDelay(100 / portTICK_PERIOD_MS);
     }
     else
