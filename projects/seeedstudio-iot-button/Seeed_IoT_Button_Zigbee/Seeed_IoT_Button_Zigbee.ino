@@ -85,6 +85,7 @@ TaskHandle_t clickTimeoutTaskHandle = NULL;
 uint32_t lastActivityTime = 0; // Tracks last button activity for sleep
 volatile bool isAwake = true;  // Tracks device awake/sleep state
 bool lastConnected = false;    // Track previous Zigbee connection state
+bool zigbeeInitialized = false; // Track Zigbee initialization status
 
 #if defined(IOT_BUTTON_V2)
 float emaVoltage = 0.0;
@@ -147,6 +148,7 @@ void measureBattery()
 /********************* FreeRTOS Tasks **************************/
 void breathingLedTask(void *pvParameters)
 {
+  Serial.println("Breathing LED");
   uint8_t hue = random8();    // Random color hue
   for (int i = 0; i < 1; i++) // one breathing cycle
   {
@@ -172,6 +174,7 @@ void breathingLedTask(void *pvParameters)
 
 void blinkLedTask(void *pvParameters)
 {
+  Serial.println("Blink LED");
   uint8_t rand = random8();
   for (int i = 0; i < 2; i++)
   {
@@ -187,7 +190,8 @@ void blinkLedTask(void *pvParameters)
 
 void rainbowLedTask(void *pvParameters)
 {
-   for (int hue = 0; hue < 128; hue += 10)
+  Serial.println("Rainbow LED");
+  for (int hue = 0; hue < 128; hue += 10)
   {
     rgbs[0] = CHSV(hue, 255, 255);
     FastLED.show();
@@ -383,7 +387,7 @@ void mainTask(void *pvParameters)
         {
           buttonStatus = true;
           Serial.println("Button Pressed");
-          if (Zigbee.connected())
+          if (zigbeeInitialized && Zigbee.connected())
           {
             zbIoTButton.setBinaryInput(buttonStatus);
             zbIoTButton.reportBinaryInput();
@@ -396,7 +400,7 @@ void mainTask(void *pvParameters)
         {
           buttonStatus = false;
           Serial.println("Button Released");
-          if (Zigbee.connected())
+          if (zigbeeInitialized && Zigbee.connected())
           {
             zbIoTButton.setBinaryInput(buttonStatus);
             zbIoTButton.reportBinaryInput();
@@ -405,9 +409,9 @@ void mainTask(void *pvParameters)
         break;
 
       case ButtonEvent::SINGLE_CLICK:
-        Serial.println("Single Click: Breathing LED");
+        Serial.println("Single Click");
         switch1Status = !switch1Status;
-        if (Zigbee.connected())
+        if (zigbeeInitialized && Zigbee.connected())
         {
           zbSwitch1.setBinaryInput(switch1Status);
           zbSwitch1.reportBinaryInput();
@@ -416,9 +420,9 @@ void mainTask(void *pvParameters)
         break;
 
       case ButtonEvent::DOUBLE_CLICK:
-        Serial.println("Double Click: Blink LED");
+        Serial.println("Double Click");
         switch2Status = !switch2Status;
-        if (Zigbee.connected())
+        if (zigbeeInitialized && Zigbee.connected())
         {
           zbSwitch2.setBinaryInput(switch2Status);
           zbSwitch2.reportBinaryInput();
@@ -427,16 +431,17 @@ void mainTask(void *pvParameters)
         break;
 
       case ButtonEvent::TRIPLE_CLICK:
-        Serial.println("Triple Click: Ignored");
-        if (Zigbee.connected())
+        Serial.println("Triple Click");
+        if (zigbeeInitialized && Zigbee.connected())
         {
+          // Add any specific Zigbee action here if needed
         }
         break;
 
       case ButtonEvent::SHORT_LONG_PRESS:
-        Serial.println("Short Long Press: Rainbow LED");
+        Serial.println("Short Long Press");
         switch3Status = !switch3Status;
-        if (Zigbee.connected())
+        if (zigbeeInitialized && Zigbee.connected())
         {
           zbSwitch3.setBinaryInput(switch3Status);
           zbSwitch3.reportBinaryInput();
@@ -445,9 +450,12 @@ void mainTask(void *pvParameters)
         break;
 
       case ButtonEvent::LONG_PRESS:
-        Serial.println("Long Press: Reset Zigbee");
+        Serial.println("Long Press\nReset Zigbee");
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-        Zigbee.factoryReset();
+        if (zigbeeInitialized)
+        {
+          Zigbee.factoryReset();
+        }
         break;
       }
     }
@@ -462,7 +470,7 @@ void ledTask(void *pvParameters)
   {
     if (isAwake)
     {
-      if (!Zigbee.connected()) // Blink when not connected to Zigbee
+      if (!zigbeeInitialized || !Zigbee.connected()) // Blink when not connected or not initialized
       {
         digitalWrite(BLUE_LED_PIN, LOW); // On
         vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -493,7 +501,7 @@ void ledTask(void *pvParameters)
     if (isAwake)
     {
       bool isLowBattery = (batteryPercentage < 20.0);
-      bool isConnected = Zigbee.connected();
+      bool isConnected = zigbeeInitialized && Zigbee.connected();
       uint8_t activeLedPin = isLowBattery ? RED_LED_PIN : BLUE_LED_PIN;
       uint8_t inactiveLedPin = isLowBattery ? BLUE_LED_PIN : RED_LED_PIN;
 
@@ -527,7 +535,7 @@ void batteryTask(void *pvParameters)
   while (1)
   {
     measureBattery();
-    if (Zigbee.connected())
+    if (zigbeeInitialized && Zigbee.connected())
     {
       zbIoTButton.setBatteryVoltage((uint8_t)(emaVoltage * 100)); // Unit: 0.01V
       zbIoTButton.setBatteryPercentage((uint8_t)batteryPercentage);
@@ -556,7 +564,10 @@ void sleepTask(void *pvParameters)
       digitalWrite(RGB_ENABLE_PIN, HIGH);
       Serial.println("Woke up from light sleep");
       Serial.begin(115200);
-      Zigbee.factoryReset();
+      if (zigbeeInitialized)
+      {
+        Zigbee.factoryReset();
+      }
       setupZigbee();
       isAwake = true;
       digitalWrite(BLUE_LED_PIN, LOW); // Turn on LED
@@ -577,6 +588,10 @@ void sleepTask(void *pvParameters)
 /********************* Zigbee Functions **************************/
 void onZigbeeConnected()
 {
+  if (!zigbeeInitialized)
+  {
+    return;
+  }
 #if defined(IOT_BUTTON_V2)
   measureBattery();                                           // Ensure latest battery data
   zbIoTButton.setBatteryVoltage((uint8_t)(emaVoltage * 100)); // Unit: 0.01V
@@ -593,7 +608,6 @@ void onZigbeeConnected()
 
 void setupZigbee()
 {
-
   zbIoTButton.addBinaryInput();
   zbIoTButton.setBinaryInputApplication(BINARY_INPUT_APPLICATION_TYPE_SECURITY_MOTION_DETECTION);
   zbIoTButton.setBinaryInputDescription("Button");
@@ -628,12 +642,13 @@ void setupZigbee()
   if (!Zigbee.begin(&zigbeeConfig, false))
   {
     Serial.println("Zigbee failed to start!");
-    Serial.println("Rebooting...");
-    ESP.restart();
+    Serial.println("Please try holding down the 5S key for a long time to reset zigbee");
+    zigbeeInitialized = false;
   }
   else
   {
     Serial.println("Zigbee started successfully!");
+    zigbeeInitialized = true;
   }
 }
 
@@ -682,24 +697,31 @@ void setup()
 /********************* Arduino Loop **************************/
 void loop()
 {
-  bool currentConnected = Zigbee.connected();
-  if (currentConnected && !lastConnected)
+  if (zigbeeInitialized)
   {
-    Serial.println("Zigbee connected!");
-    onZigbeeConnected();
-  }
-  else if (!currentConnected && lastConnected)
-  {
-    Serial.println("Zigbee disconnected!");
-  }
-  lastConnected = currentConnected;
-  if (!currentConnected)
-  {
-    Serial.print(".");
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    bool currentConnected = Zigbee.connected();
+    if (currentConnected && !lastConnected)
+    {
+      Serial.println("Zigbee connected!");
+      onZigbeeConnected();
+    }
+    else if (!currentConnected && lastConnected)
+    {
+      Serial.println("Zigbee disconnected!");
+    }
+    lastConnected = currentConnected;
+    if (!currentConnected)
+    {
+      Serial.print(".");
+      vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+    else
+    {
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
   }
   else
   {
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(1000 / portTICK_PERIOD_MS); // Keep loop running even if Zigbee fails
   }
 }
