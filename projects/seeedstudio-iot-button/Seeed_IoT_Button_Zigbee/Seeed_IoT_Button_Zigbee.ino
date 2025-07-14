@@ -551,7 +551,9 @@ void sleepTask(void *pvParameters)
       esp_sleep_enable_gpio_wakeup();
       digitalWrite(BLUE_LED_PIN, HIGH); // Turn off LED
       gpio_wakeup_enable((gpio_num_t)BUTTON_PIN, GPIO_INTR_LOW_LEVEL);
+      digitalWrite(RGB_ENABLE_PIN, LOW);
       esp_light_sleep_start();
+      digitalWrite(RGB_ENABLE_PIN, HIGH);
       Serial.println("Woke up from light sleep");
       Serial.begin(115200);
       Zigbee.factoryReset();
@@ -561,6 +563,8 @@ void sleepTask(void *pvParameters)
 #elif defined(IOT_BUTTON_V2)
       digitalWrite(BLUE_LED_PIN, HIGH);
       digitalWrite(RED_LED_PIN, HIGH);
+      digitalWrite(RGB_PIN, LOW);
+      digitalWrite(RGB_ENABLE_PIN, LOW);
       static gpio_num_t WAKEUP_GPIO = (gpio_num_t)BUTTON_PIN;
       esp_sleep_enable_ext1_wakeup_io(BUTTON_PIN_BITMASK(WAKEUP_GPIO), ESP_EXT1_WAKEUP_ANY_LOW);
       esp_deep_sleep_start();
