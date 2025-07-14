@@ -82,9 +82,9 @@ uint8_t clickCount = 0;
 bool longPressTriggered = false;
 bool clickSequenceActive = false; // Tracks if a click sequence is in progress
 TaskHandle_t clickTimeoutTaskHandle = NULL;
-uint32_t lastActivityTime = 0; // Tracks last button activity for sleep
-volatile bool isAwake = true;  // Tracks device awake/sleep state
-bool lastConnected = false;    // Track previous Zigbee connection state
+uint32_t lastActivityTime = 0;  // Tracks last button activity for sleep
+volatile bool isAwake = true;   // Tracks device awake/sleep state
+bool lastConnected = false;     // Track previous Zigbee connection state
 bool zigbeeInitialized = false; // Track Zigbee initialization status
 
 #if defined(IOT_BUTTON_V2)
@@ -111,34 +111,35 @@ void measureBattery()
   float adcAverage = adcSum / SAMPLE_COUNT;
   float voltage = (adcAverage / 4095.0) * 3.3 * 3.0; // Apply divider ratio
 
-  // Update EMA
-  if (emaVoltage == 0.0)
-  {
-    emaVoltage = voltage;
-  }
-  else
-  {
-    emaVoltage = ALPHA * voltage + (1 - ALPHA) * emaVoltage;
-  }
-
-  // Calculate battery percentage from emaVoltage
-  float localBatteryPercentage = (emaVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE) * 100;
-  if (localBatteryPercentage < 0)
-    localBatteryPercentage = 0;
-  if (localBatteryPercentage > 100)
-    localBatteryPercentage = 100;
-
-  // Update global battery percentage
-  batteryPercentage = localBatteryPercentage;
-
-  // Print voltage and percentage
   if (voltage < MIN_VOLTAGE)
   {
+    emaVoltage = 0.0;
+    batteryPercentage = 0.0;
     Serial.printf("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
-                  voltage, emaVoltage, localBatteryPercentage);
+                  voltage, emaVoltage, batteryPercentage);
   }
   else
   {
+    // Update EMA
+    if (emaVoltage == 0.0)
+    {
+      emaVoltage = voltage;
+    }
+    else
+    {
+      emaVoltage = ALPHA * voltage + (1 - ALPHA) * emaVoltage;
+    }
+
+    // Calculate battery percentage from emaVoltage
+    float localBatteryPercentage = (emaVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE) * 100;
+    if (localBatteryPercentage < 0)
+      localBatteryPercentage = 0;
+    if (localBatteryPercentage > 100)
+      localBatteryPercentage = 100;
+
+    // Update global battery percentage
+    batteryPercentage = localBatteryPercentage;
+
     Serial.printf("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
                   voltage, emaVoltage, localBatteryPercentage);
   }
