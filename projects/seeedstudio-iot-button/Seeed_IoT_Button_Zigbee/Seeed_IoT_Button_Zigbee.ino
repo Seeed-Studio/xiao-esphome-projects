@@ -87,12 +87,6 @@ RTC_DATA_ATTR bool switch3Status = false;
 
 /* Global Variables */
 QueueHandle_t eventQueue;
-// RTC variables for button state persistence
-RTC_DATA_ATTR uint32_t pressStartTimeRTC = 0;
-RTC_DATA_ATTR uint32_t lastReleaseTimeRTC = 0;
-RTC_DATA_ATTR uint8_t clickCountRTC = 0;
-RTC_DATA_ATTR bool longPressTriggeredRTC = false;
-RTC_DATA_ATTR bool clickSequenceActiveRTC = false;
 
 uint32_t pressStartTime = 0;
 uint32_t lastReleaseTime = 0;
@@ -106,6 +100,13 @@ bool lastConnected = false;     // Track previous Zigbee connection state
 bool zigbeeInitialized = false; // Track Zigbee initialization status
 
 #if defined(IOT_BUTTON_V2)
+// RTC variables for button state persistence
+RTC_DATA_ATTR uint32_t pressStartTimeRTC = 0;
+RTC_DATA_ATTR uint32_t lastReleaseTimeRTC = 0;
+RTC_DATA_ATTR uint8_t clickCountRTC = 0;
+RTC_DATA_ATTR bool longPressTriggeredRTC = false;
+RTC_DATA_ATTR bool clickSequenceActiveRTC = false;
+
 float emaVoltage = 0.0;
 float batteryPercentage = 100.0;
 #endif
@@ -690,13 +691,14 @@ void setup()
   Serial.begin(115200);
 
   LOG_PRINTLN("Zigbee IoT Button Starting...");
-
+#if defined(IOT_BUTTON_V2)
   // Restore button state from RTC memory
   pressStartTime = pressStartTimeRTC;
   lastReleaseTime = lastReleaseTimeRTC;
   clickCount = clickCountRTC;
   longPressTriggered = longPressTriggeredRTC;
   clickSequenceActive = clickSequenceActiveRTC;
+#endif
 
   // Initialize button pin
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -736,11 +738,11 @@ void setup()
   xTaskCreate(ledTask, "LedTask", 1024, NULL, 0, NULL);
   xTaskCreate(mainTask, "MainTask", 2048, NULL, 3, NULL);
   xTaskCreate(sleepTask, "SleepTask", 2048, NULL, 2, NULL);
-  xTaskCreate(zigbeeSetupTask, "ZigbeeSetup", 4096, NULL, 2, NULL);
+  xTaskCreate(zigbeeSetupTask, "ZigbeeSetup", 2048, NULL, 1, NULL);
 #if defined(IOT_BUTTON_V2)
   xTaskCreate(batteryTask, "BatteryTask", 2048, NULL, 1, NULL);
 #endif
-  xTaskCreate(rainbowLedTask, "RainbowLed", 2048, NULL, 1, NULL);
+
 }
 
 /********************* Arduino Loop **************************/
