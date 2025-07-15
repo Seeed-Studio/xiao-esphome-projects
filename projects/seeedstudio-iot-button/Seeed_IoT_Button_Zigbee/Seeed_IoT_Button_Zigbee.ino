@@ -592,12 +592,6 @@ void sleepTask(void *pvParameters)
       esp_light_sleep_start();
       digitalWrite(RGB_ENABLE_PIN, HIGH);
       LOG_PRINTLN("Woke up from light sleep");
-      Serial.begin(115200);
-      if (zigbeeInitialized)
-      {
-        Zigbee.factoryReset();
-      }
-      setupZigbee();
       isAwake = true;
       digitalWrite(BLUE_LED_PIN, LOW); // Turn on LED
 #elif defined(IOT_BUTTON_V2)
