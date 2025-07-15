@@ -1,7 +1,9 @@
 # XIAO ESPHome Projects
 
 > ## 🚀 Quick Firmware Installation
+>
 > ### ✨ Visit our Web Installer: [https://gadgets.seeed.cc](https://gadgets.seeed.cc) ✨
+>
 > Simply click the link to easily install firmware directly to your device!
 
 Welcome to the XIAO ESPHome Projects repository! This repository contains a collection of projects and examples using the Seeed Studio XIAO series with ESPHome. These projects demonstrate various capabilities and integrations of XIAO boards with ESPHome, making it easier for you to get started with IoT development.
@@ -50,6 +52,18 @@ XIAO Soil Moisture Monitor is used to monitor soil moisture and feedback the cur
 ### Project 3: Seeed Studio IoT Button
 
 The Seeed Studio IoT Button is a multifunctional Internet of Things (IoT) device that can be seamlessly integrated with smart home systems. It supports both ESPHome and Zigbee connectivity options, enhancing its versatility and usability.
+**Supported Versions & Recommendations:**
+
+- **IoT Button V1 (First Generation):**
+  - ESPHome (WiFi, Home Assistant integration)
+  - ESPHome (MQTT, any MQTT broker) **&larr; Recommended for V1**
+  - Arduino with Zigbee
+
+- **IoT Button V2 (Second Generation):**
+  - ESPHome (WiFi, Home Assistant integration, battery monitoring)
+  - Arduino with Zigbee (battery monitoring, deep sleep) **&larr; Recommended for V2**
+
+For details and usage, see [projects/seeedstudio-iot-button/README.md](projects/seeedstudio-iot-button/README.md).
 
 ### Project 4: XIAO Smart IR Mate
 
@@ -60,6 +74,7 @@ XIAO Smart IR Mate is a smart device based on the Seeed Studio XIAO ESP32-C3. It
 XIAO 24GHz mmWave is an ESPHome project for the Seeed Studio XIAO ESP32-C6 board equipped with a 24GHz mmWave radar sensor (LD2410). It features deep sleep, battery monitoring, and Home Assistant integration, making it ideal for low-power, battery-operated presence detection.
 
 ## Installation
+
 ### 📱 Web Installer - One-Click Firmware Installation
 
 <div align="center">
@@ -67,7 +82,6 @@ XIAO 24GHz mmWave is an ESPHome project for the Seeed Studio XIAO ESP32-C6 board
   <p>👆 Click the link above to access our Web Installer 👆</p>
   <p>No complex setup required - install firmware directly through your browser!</p>
 </div>
-
 
 ## Contributing
 

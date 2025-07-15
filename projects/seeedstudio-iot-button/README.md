@@ -2,7 +2,7 @@
 
 This project provides configurations and code for the Seeed Studio IoT Button, a versatile smart device based on the ESP32-C6. It supports both the first generation (V1) and second generation (V2) of the device, with options for ESPHome (WiFi) and Arduino with Zigbee programming.
 
-**Note**: This repository contains ESPHome YAML configurations (`seeedstudio-iot-button.yaml` for V1, `seeedstudio-iot-button-v2.yaml` for V2) and Arduino code for both V1 and V2. Select the appropriate files based on your device version and programming preference.
+**Note**: This repository contains ESPHome YAML configurations (`seeedstudio-iot-button.yaml` for IoT Button V1, `seeedstudio-iot-button-v2.yaml` for IoT Button V2), **MQTT configuration (`seeedstudio-iotbutton_MQTT.yaml` for IoT Button V1)**, and Arduino code for both IoT Button V1 and IoT Button V2. Select the appropriate files based on your device version and programming preference.
 
 ## Features
 
@@ -13,19 +13,25 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
 - Power-saving modes to extend battery life.
 - Seamless integration with smart home systems.
 
-### First Generation (V1)
+### IoT Button V1
 
 - **ESPHome**:
   - WiFi connectivity with fallback AP mode.
   - Blue LED for status.
   - Light sleep mode after 2 minutes of inactivity.
   - *Updates*: Long-press sleep function removed, button sensitivity optimized.
+- **ESPHome (MQTT)**:
+  - WiFi connectivity with MQTT broker support.
+  - Blue LED for status.
+  - RGB LED effects for button actions.
+  - Light sleep mode after 2 minutes of inactivity.
+  - Button actions and states published via MQTT topics.
 - **Arduino with Zigbee**:
   - Zigbee communication.
   - Blue LED for status.
   - Light sleep mode after 2 minutes of inactivity.
 
-### Second Generation (V2)
+### IoT Button V2
 
 - **ESPHome**:
   - WiFi connectivity with fallback AP mode.
@@ -40,14 +46,14 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
 
 ## Hardware Pinout
 
-### V1
+### IoT Button V1
 
 - **User Button**: GPIO9
 - **Blue User LED**: GPIO2 (inverted)
 - **RGB Status LED**: GPIO19 (WS2812)
 - **LED Strip Power Enable**: GPIO18
 
-### V2
+### IoT Button V2
 
 - **User Button**: GPIO2
 - **Blue LED**: GPIO3
@@ -65,6 +71,18 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
   - Single press: Toggles Switch 1.
   - Double press: Toggles Switch 2.
   - Long press (1-2s): Toggles Switch 3.
+
+### ESPHome (MQTT)
+
+- **Overview**: Integrates with any MQTT broker, suitable for non-Home Assistant setups.
+- **Button Actions**:
+  - Single press: Publishes ON/OFF to `button/switch_1/state` with RGB "Blink" effect.
+  - Double press: Publishes ON/OFF to `button/switch_2/state` with RGB "Subtle Flicker" effect.
+  - Long press (1-2s): Publishes ON/OFF to `button/switch_3/state` with RGB "Rainbow" effect.
+- **Status LEDs**:
+  - Blue LED indicates status.
+- **Power Saving**: Light sleep after 2 minutes of inactivity.
+- **Configuration**: See `seeedstudio-iotbutton_MQTT.yaml`.
 
 ### Arduino with Zigbee
 
@@ -90,6 +108,20 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
   - V2: Blue LED for normal operation, red LED for low battery/errors.
 - **Power Saving**: Light sleep after 2 minutes of inactivity.
 
+### ESPHome (MQTT)
+
+- **Button Actions**:
+  - *Single Press*: Publishes ON/OFF to `button/switch_1/state`, RGB "Blink" effect.
+  - *Double Press*: Publishes ON/OFF to `button/switch_2/state`, RGB "Subtle Flicker" effect.
+  - *Long Press (1-2s)*: Publishes ON/OFF to `button/switch_3/state`, RGB "Rainbow" effect.
+- **Status LEDs**:
+  - Blue LED indicates status.
+- **Power Saving**: Light sleep after 2 minutes of inactivity.
+- **How to Use**:
+  1. Configure `seeedstudio-iotbutton_MQTT.yaml` with your WiFi and MQTT broker information.
+  2. Flash the firmware using the ESPHome tool.
+  3. Button events will be published via MQTT topics (such as `button/switch_1/state`) and can be integrated into any MQTT platform.
+
 ### Arduino with Zigbee
 
 - **Button Events**:
@@ -109,17 +141,35 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
 
 ### ESPHome
 
+#### **Recommended: Install Precompiled Firmware Easily**
+
+- Visit [gadgets.seeed.cc](https://gadgets.seeed.cc/) to quickly install the latest precompiled firmware for your IoT Button. This is the fastest and easiest way to get started—no compilation required.
+
+#### **Advanced: Compile and Flash Yourself**
+
 1. **Install ESPHome**: Follow the [ESPHome installation guide](https://esphome.io/guides/installing_esphome.html).
 2. **Choose YAML**:
-   - V1: `seeedstudio-iot-button.yaml`
-   - V2: `seeedstudio-iot-button-v2.yaml`
+    - IoT Button V1: `seeedstudio-iot-button.yaml`
+    - IoT Button V2: `seeedstudio-iot-button-v2.yaml`
 3. **Flash the Device**:
 
-   ```bash
-   esphome run <your_yaml_file>.yaml
-   ```
+    ```bash
+    esphome run <your_yaml_file>.yaml
+    ```
 
 4. **Add to Home Assistant**: Discoverable via ESPHome integration.
+
+### ESPHome (MQTT)
+
+1. **Install ESPHome**: Refer to the [ESPHome installation guide](https://esphome.io/guides/installing_esphome.html).
+2. **Configure YAML**: Use `seeedstudio-iotbutton_MQTT.yaml` and fill in your WiFi and MQTT broker information.
+3. **Flash the device**:
+
+    ```bash
+    esphome run seeedstudio-iotbutton_MQTT.yaml
+    ```
+
+4. **MQTT Integration**: Button events will be automatically published to your MQTT broker and can be subscribed to by any MQTT-compatible platform.
 
 ### Arduino with Zigbee
 
@@ -127,11 +177,16 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
 2. **Update ESP32-SDK**: Make sure your version is 3.2.1 or above.
 3. **Install Libraries**: FastLED.
 4. **Load Code**:
-   - V1: Use provided V1 Arduino code.
-   - V2: Use provided V2 Arduino code.
-5. **Configure and Upload**: Set Zigbee parameters, upload to device.
+    - Use the provided Arduino code. Select your device version by defining either `IOT_BUTTON_V1` or `IOT_BUTTON_V2` in the code or build settings.
+5. **Configure and Upload**:
+    - Select the correct board: Tools → Board → ESP32 Arduino → XIAO_ESP32C6
+    - Enable Zigbee Mode: Tools → Zigbee mode → Zigbee Endpoint
+    - Set Partition Scheme: Tools → Partition Scheme → Zigbee 4MB with spiffs
+    - For other settings, you can use the defaults
+    - Select COM to Upload
 
 ## Customization
 
-- **ESPHome**: Edit YAML to adjust pins, actions, LED effects, or sleep settings.
+- **ESPHome**: Edit YAML to adjust actions, LED effects, or sleep settings.
+- **ESPHome (MQTT)**: Edit `seeedstudio-iotbutton_MQTT.yaml` to customize button mapping, LED effects, MQTT topics, etc.
 - **Arduino with Zigbee**: Modify code for button mappings, LED behaviors, or Zigbee settings.
