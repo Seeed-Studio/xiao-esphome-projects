@@ -21,6 +21,9 @@
 #define LOG_PRINTF(x, ...)
 #endif
 
+// #define IOT_BUTTON_V1  //Uncomment this line to select to compile the iot button v1 version
+// #define IOT_BUTTON_V2  //Uncomment this line to select to compile the iot button v2 version
+
 #if !defined(IOT_BUTTON_V1) && !defined(IOT_BUTTON_V2)
 #define IOT_BUTTON_V2
 #endif
