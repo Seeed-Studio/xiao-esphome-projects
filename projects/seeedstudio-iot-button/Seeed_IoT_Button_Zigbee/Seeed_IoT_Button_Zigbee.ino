@@ -87,6 +87,13 @@ RTC_DATA_ATTR bool switch3Status = false;
 
 /* Global Variables */
 QueueHandle_t eventQueue;
+// RTC variables for button state persistence
+RTC_DATA_ATTR uint32_t pressStartTimeRTC = 0;
+RTC_DATA_ATTR uint32_t lastReleaseTimeRTC = 0;
+RTC_DATA_ATTR uint8_t clickCountRTC = 0;
+RTC_DATA_ATTR bool longPressTriggeredRTC = false;
+RTC_DATA_ATTR bool clickSequenceActiveRTC = false;
+
 uint32_t pressStartTime = 0;
 uint32_t lastReleaseTime = 0;
 uint8_t clickCount = 0;
@@ -126,12 +133,11 @@ void measureBattery()
   {
     emaVoltage = 0.0;
     batteryPercentage = 0.0;
-    LOG_PRINTF("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
-               voltage, emaVoltage, batteryPercentage);
+    // LOG_PRINTF("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
+    //            voltage, emaVoltage, batteryPercentage);
   }
   else
   {
-    emaVoltage=emaVoltage == 0.0?voltage:ALPHA * voltage + (1 - ALPHA) * emaVoltage;
     // Update EMA
     if (emaVoltage == 0.0)
     {
@@ -152,8 +158,8 @@ void measureBattery()
     // Update global battery percentage
     batteryPercentage = localBatteryPercentage;
 
-    LOG_PRINTF("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
-               voltage, emaVoltage, localBatteryPercentage);
+    // LOG_PRINTF("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
+    //            voltage, emaVoltage, localBatteryPercentage);
   }
 }
 #endif
@@ -355,6 +361,16 @@ void buttonTask(void *pvParameters)
 {
   uint32_t lastDebounceTime = 0;
   bool lastState = false;
+
+  // Check if woken up by button press
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1)
+  {
+    bool currentState = (digitalRead(BUTTON_PIN) == LOW);
+    if (currentState)
+    {
+      handleButtonPress(millis());
+    }
+  }
 
   while (1)
   {
@@ -585,6 +601,13 @@ void sleepTask(void *pvParameters)
       isAwake = true;
       digitalWrite(BLUE_LED_PIN, LOW); // Turn on LED
 #elif defined(IOT_BUTTON_V2)
+      // Save button state to RTC memory
+      pressStartTimeRTC = pressStartTime;
+      lastReleaseTimeRTC = lastReleaseTime;
+      clickCountRTC = clickCount;
+      longPressTriggeredRTC = longPressTriggered;
+      clickSequenceActiveRTC = clickSequenceActive;
+
       digitalWrite(BLUE_LED_PIN, HIGH);
       digitalWrite(RED_LED_PIN, HIGH);
       digitalWrite(RGB_PIN, LOW);
@@ -619,7 +642,7 @@ void onZigbeeConnected()
   zbSwitch3.reportBinaryInput();
 }
 
-void setupZigbee()
+void zigbeeSetupTask(void *pvParameters)
 {
   zbIoTButton.addBinaryInput();
   zbIoTButton.setBinaryInputApplication(BINARY_INPUT_APPLICATION_TYPE_SECURITY_MOTION_DETECTION);
@@ -663,6 +686,8 @@ void setupZigbee()
     LOG_PRINTLN("Zigbee started successfully!");
     zigbeeInitialized = true;
   }
+
+  vTaskDelete(NULL); // Terminate the task after completion
 }
 
 /********************* Arduino Setup **************************/
@@ -671,6 +696,13 @@ void setup()
   Serial.begin(115200);
 
   LOG_PRINTLN("Zigbee IoT Button Starting...");
+
+  // Restore button state from RTC memory
+  pressStartTime = pressStartTimeRTC;
+  lastReleaseTime = lastReleaseTimeRTC;
+  clickCount = clickCountRTC;
+  longPressTriggered = longPressTriggeredRTC;
+  clickSequenceActive = clickSequenceActiveRTC;
 
   // Initialize button pin
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -685,9 +717,6 @@ void setup()
   FastLED.addLeds<WS2812, RGB_PIN, GRB>(rgbs, NUM_RGBS);
   FastLED.setBrightness(50);
 
-  // Initialize Zigbee
-  setupZigbee();
-
   // Create event queue
   eventQueue = xQueueCreate(10, sizeof(ButtonEvent));
   if (eventQueue == NULL)
@@ -695,12 +724,25 @@ void setup()
     LOG_PRINTLN("Failed to create event queue!");
     ESP.restart();
   }
+  
+#if defined(IOT_BUTTON_V2)
+  // Check if woken up by button press and handle immediately
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1)
+  {
+    uint32_t currentTime = millis();
+    if (digitalRead(BUTTON_PIN) == LOW)
+    {
+      handleButtonPress(currentTime);
+    }
+  }
+#endif
 
   // Create FreeRTOS tasks
   xTaskCreate(buttonTask, "ButtonTask", 2048, NULL, 4, NULL);
   xTaskCreate(ledTask, "LedTask", 1024, NULL, 0, NULL);
   xTaskCreate(mainTask, "MainTask", 2048, NULL, 3, NULL);
   xTaskCreate(sleepTask, "SleepTask", 2048, NULL, 2, NULL);
+  xTaskCreate(zigbeeSetupTask, "ZigbeeSetup", 4096, NULL, 2, NULL);
 #if defined(IOT_BUTTON_V2)
   xTaskCreate(batteryTask, "BatteryTask", 2048, NULL, 1, NULL);
 #endif
