@@ -11,7 +11,7 @@
 #include "driver/rtc_io.h"
 
 // Logging macro switch
-#define ENABLE_LOGGING  // Comment out to disable logging
+#define ENABLE_LOGGING // Comment out to disable logging
 
 #ifdef ENABLE_LOGGING
 #define LOG_PRINTLN(x) Serial.println(x)
@@ -723,7 +723,7 @@ void setup()
     LOG_PRINTLN("Failed to create event queue!");
     ESP.restart();
   }
-  
+
 #if defined(IOT_BUTTON_V2)
   // Check if woken up by button press and handle immediately
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1)
@@ -745,7 +745,6 @@ void setup()
 #if defined(IOT_BUTTON_V2)
   xTaskCreate(batteryTask, "BatteryTask", 2048, NULL, 1, NULL);
 #endif
-
 }
 
 /********************* Arduino Loop **************************/
@@ -766,8 +765,8 @@ void loop()
     lastConnected = currentConnected;
     if (!currentConnected)
     {
-      LOG_PRINTLN(".");
-      vTaskDelay(100 / portTICK_PERIOD_MS);
+      LOG_PRINTLN("Zigbee not connected, retrying...");
+      vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
     else
     {
