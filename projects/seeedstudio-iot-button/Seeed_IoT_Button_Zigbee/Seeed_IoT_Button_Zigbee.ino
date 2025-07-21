@@ -137,8 +137,8 @@ void measureBattery()
   {
     emaVoltage = 0.0;
     batteryPercentage = 0.0;
-    // LOG_PRINTF("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
-    //            voltage, emaVoltage, batteryPercentage);
+    LOG_PRINTF("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
+               voltage, emaVoltage, batteryPercentage);
   }
   else
   {
@@ -162,8 +162,8 @@ void measureBattery()
     // Update global battery percentage
     batteryPercentage = localBatteryPercentage;
 
-    // LOG_PRINTF("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
-    //            voltage, emaVoltage, localBatteryPercentage);
+    LOG_PRINTF("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
+               voltage, emaVoltage, localBatteryPercentage);
   }
 }
 #endif
