@@ -111,7 +111,7 @@ remote_receiver:
       inverted: true
     # Idle time, if the low level exceeds this time, it is considered as a new segment of the signal
     # That is "segmentation"
-    idle: 65535us
+    idle: 65500us
     # Important, this parameter is used to segment the infrared signal
     # If a certain segment of the infrared signal is too long, it may be divided into several segments
     # For such a case, you must send the infrared signal strictly according to the corresponding timing, otherwise it will fail
