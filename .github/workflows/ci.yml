@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5
       - name: ESPHome ${{ matrix.esphome-version }}
         uses: esphome/build-action@v7.0.0
         with:
@@ -53,7 +53,7 @@ jobs:
         variant: [IOT_BUTTON_V1, IOT_BUTTON_V2]
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v2
       - name: Install ESP32 platform

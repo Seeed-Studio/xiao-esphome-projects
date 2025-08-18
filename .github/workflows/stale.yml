@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Checkout script repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
             repository: Seeed-Studio/sync-github-all-issues
             path: ci
