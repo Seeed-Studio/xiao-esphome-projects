@@ -127,6 +127,8 @@ remote_receiver:
             if (x.size() > id(filter_size)){
               ESP_LOGI("ir", "Saved signal index: %d", id(signal_select_index));
               id(signal_nvs).save_to_nvs(id(signal_select_index), x);
+              id(send_data_vector).clear();
+              id(send_data_vector) = id(signal_nvs).load_from_nvs<long int>(id(signal_select_index)); 
               id(is_learning_mode) = false;
               // Learned the signal, turn on the switch
               id(is_learned_signal_script).execute(true);
