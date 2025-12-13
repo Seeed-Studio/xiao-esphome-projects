@@ -1,6 +1,7 @@
 #pragma once
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
+#include "esphome/core/gpio.h"
 #include <vector>
 
 namespace esphome
@@ -15,13 +16,13 @@ namespace esphome
       void dump_config() override;
       float get_setup_priority() const override { return setup_priority::DATA; }
 
-      void set_wakeup_pin(int pin) { wakeup_pin_ = pin; }
+      void set_wakeup_pin(InternalGPIOPin *pin) { this->wakeup_pin_ = pin; }
       void enter_sleep();
       void add_on_wakeup(Trigger<> *trigger) { this->wakeup_triggers_.push_back(trigger); }
       void add_on_prepare_sleep(Trigger<> *trigger) { this->prepare_sleep_triggers_.push_back(trigger); }
 
     protected:
-      int wakeup_pin_;
+      InternalGPIOPin *wakeup_pin_;
       std::vector<Trigger<> *> wakeup_triggers_;
       std::vector<Trigger<> *> prepare_sleep_triggers_;
     };

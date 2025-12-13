@@ -15,7 +15,7 @@ namespace esphome
 
         void LightSleep::setup()
         {
-            int gpio_num = wakeup_pin_;
+            const auto gpio_num = gpio_num_t(this->wakeup_pin_->get_pin());
 
             gpio_config_t config = {
                 .pin_bit_mask = 1ULL << gpio_num,
@@ -48,7 +48,7 @@ namespace esphome
 
         void LightSleep::enter_sleep()
         {
-            int gpio_num = wakeup_pin_;
+            const auto gpio_num = gpio_num_t(this->wakeup_pin_->get_pin());
 
             // Wait for the pin to be released (from low to high)
             if (gpio_get_level((gpio_num_t)gpio_num) == 0)
