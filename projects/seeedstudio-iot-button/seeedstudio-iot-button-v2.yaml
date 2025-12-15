@@ -95,11 +95,11 @@ output:
   - platform: gpio
     pin: GPIO14
     id: red_led_pin
-    inverted: False
+    inverted: True
   - platform: gpio
     pin: GPIO3
     id: blue_led_pin
-    inverted: False
+    inverted: True
   - platform: gpio
     pin: GPIO18
     id: enable_pin
