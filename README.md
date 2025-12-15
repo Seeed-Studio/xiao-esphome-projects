@@ -20,6 +20,7 @@ Welcome to the XIAO ESPHome Projects repository! This repository contains a coll
     - [Project 3: Seeed Studio IoT Button](#project-3-seeed-studio-iot-button)
     - [Project 4: XIAO Smart IR Mate](#project-4-xiao-smart-ir-mate)
     - [Project 5: XIAO 24GHz mmWave](#project-5-xiao-24ghz-mmwave)
+    - [Project 6: Seeed Studio XIAO W5500 Ethernet Adapter V1.2](#project-6-seeed-esp32-poe)
   - [Installation](#installation)
     - [📱 Web Installer - One-Click Firmware Installation](#-web-installer---one-click-firmware-installation)
   - [Contributing](#contributing)
@@ -71,11 +72,11 @@ XIAO Smart IR Mate is a smart device based on the Seeed Studio XIAO ESP32-C3. It
 
 ### Project 5: XIAO 24GHz mmWave
 
-Seeed Studio XIAO W5500 Ethernet Adapter V1.2 enables the XIAO ESP32S3 to operate as a high-performance Bluetooth Proxy for Home Assistant.By utilizing a stable Ethernet connection for data backhaul instead of Wi-Fi, this setup eliminates wireless interference, freeing up the ESP32's radio strictly for scanning Bluetooth Low Energy (BLE) devices. 
+XIAO 24GHz mmWave is an ESPHome project for the Seeed Studio XIAO ESP32-C6 board equipped with a 24GHz mmWave radar sensor (LD2410). It features deep sleep, battery monitoring, and Home Assistant integration, making it ideal for low-power, battery-operated presence detection.
 
 ### Project 6: Seeed Studio XIAO W5500 Ethernet Adapter V1.2
 
-XIAO 24GHz mmWave is an ESPHome project for the Seeed Studio XIAO ESP32-C6 board equipped with a 24GHz mmWave radar sensor (LD2410). It features deep sleep, battery monitoring, and Home Assistant integration, making it ideal for low-power, battery-operated presence detection.
+Seeed Studio XIAO W5500 Ethernet Adapter V1.2 enables the XIAO ESP32S3 to operate as a high-performance Bluetooth Proxy for Home Assistant.By utilizing a stable Ethernet connection for data backhaul instead of Wi-Fi, this setup eliminates wireless interference, freeing up the ESP32's radio strictly for scanning Bluetooth Low Energy (BLE) devices. 
 
 ## Installation
 
