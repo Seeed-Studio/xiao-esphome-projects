@@ -1,6 +1,6 @@
 # Seeed Studio XIAO W5500 Ethernet Adapter V1.2
 
-The Seeed Studio XIAO W5500 Ethernet Adapter V1.2 is a compact expansion board designed for the Seeed Studio XIAO series. It empowers your XIAO projects with stable, hardwired Ethernet connectivity using the W5500 TCP/IP embedded Ethernet controller.
+Seeed Studio XIAO W5500 Ethernet Adapter V1.2 enables the XIAO ESP32S3 to operate as a high-performance Bluetooth Proxy for Home Assistant.By utilizing a stable Ethernet connection for data backhaul instead of Wi-Fi, this setup eliminates wireless interference, freeing up the ESP32's radio strictly for scanning Bluetooth Low Energy (BLE) devices. 
 
 ⚠️ Hardware Note: This configuration is strictly for V1.2 boards produced after November 1, 2025. Please check your hardware version before flashing.
 

@@ -71,6 +71,10 @@ XIAO Smart IR Mate is a smart device based on the Seeed Studio XIAO ESP32-C3. It
 
 ### Project 5: XIAO 24GHz mmWave
 
+Seeed Studio XIAO W5500 Ethernet Adapter V1.2 enables the XIAO ESP32S3 to operate as a high-performance Bluetooth Proxy for Home Assistant.By utilizing a stable Ethernet connection for data backhaul instead of Wi-Fi, this setup eliminates wireless interference, freeing up the ESP32's radio strictly for scanning Bluetooth Low Energy (BLE) devices. 
+
+### Project 6: Seeed Studio XIAO W5500 Ethernet Adapter V1.2
+
 XIAO 24GHz mmWave is an ESPHome project for the Seeed Studio XIAO ESP32-C6 board equipped with a 24GHz mmWave radar sensor (LD2410). It features deep sleep, battery monitoring, and Home Assistant integration, making it ideal for low-power, battery-operated presence detection.
 
 ## Installation
