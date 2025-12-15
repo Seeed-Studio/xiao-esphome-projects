@@ -17,6 +17,24 @@ esphome:
       - light.turn_off: blue_led
       - light.turn_on: red_led
       - output.turn_on: battery_enable_pin
+      - lambda: |-
+          auto cause = esp_sleep_get_wakeup_cause();
+          if ((cause == ESP_SLEEP_WAKEUP_EXT0 || cause == ESP_SLEEP_WAKEUP_EXT1) && id(button_gpio).state) {
+            id(press_start_ms) = millis();
+            id(last_activity_time) = millis();
+          }
+      - switch.template.publish:
+          id: virtual_toggle_1
+          state: !lambda 'return id(virtual_toggle_1_state);'
+      - switch.template.publish:
+          id: virtual_toggle_2
+          state: !lambda 'return id(virtual_toggle_2_state);'
+      - switch.template.publish:
+          id: virtual_toggle_3
+          state: !lambda 'return id(virtual_toggle_3_state);'
+      - globals.set:
+          id: booting
+          value: 'false'
 
 esp32:
   board: esp32-c6-devkitc-1
@@ -40,13 +58,6 @@ esp32:
       CONFIG_PM_PROFILING: y
 
 external_components:
-  - source:
-      type: git
-      url: https://github.com/Seeed-Studio/xiao-esphome-projects
-      ref: main
-    components: [ light_sleep] 
-    refresh: 0s
-
   - source: github://PhracturedBlue/c6_adc
     components: [ c6_adc ]
     refresh: 0s
@@ -74,6 +85,9 @@ wifi:
       - logger.log: "WiFi Connected!"
       - light.turn_off: red_led  # Turn off red LED
       - light.turn_on: blue_led  # Turn on blue LED
+      - globals.set:
+          id: sleep_timeout_ms
+          value: '30000'
       - lambda: |-
           id(battery_voltage).update();
           delay(50);
@@ -104,26 +118,12 @@ output:
     pin: GPIO18
     id: enable_pin
 
-light_sleep:
-  id: light_sleep_1
+deep_sleep:
+  id: deep_sleep_1
   wakeup_pin:
     number: GPIO2
-    allow_other_uses: True  # Also used as binary_sensor
-  on_prepare_sleep:
-    then:
-      - logger.log: "Preparing to enter light sleep"
-      - output.turn_off: battery_enable_pin
-      - light.turn_off: blue_led
-      - light.turn_off: red_led
-      - light.turn_off: rgb_led
-  on_wakeup:
-    then:
-      - output.turn_on: battery_enable_pin
-      - light.turn_on: red_led
-      - logger.log: "Device woke up from light sleep"
-      - globals.set:
-          id: last_activity_time
-          value: !lambda 'return millis();'
+    allow_other_uses: True
+  wakeup_pin_mode: INVERT_WAKEUP
 
 sensor:
   - platform: c6_adc
@@ -177,30 +177,44 @@ switch:
     id: virtual_toggle_1
     optimistic: true
     turn_on_action:
-      - logger.log: "Single Short Clicked"
-      - logger.log: "Switch 1 turned ON"
-      # Toggle blue LED to indicate button press
-      - light.turn_on:
-          id: rgb_led
-          effect: "Blink"
-      - delay: 1s
-      - light.turn_off: rgb_led
-      - globals.set:
-          id: last_activity_time
-          value: !lambda 'return millis();'
+      - if:
+          condition:
+            lambda: 'return !id(booting);'
+          then:
+            - logger.log: "Single Short Clicked"
+            - logger.log: "Switch 1 turned ON"
+            - globals.set:
+                id: virtual_toggle_1_state
+                value: 'true'
+            # Toggle blue LED to indicate button press
+            - light.turn_on:
+                id: rgb_led
+                effect: "Blink"
+            - delay: 1s
+            - light.turn_off: rgb_led
+            - globals.set:
+                id: last_activity_time
+                value: !lambda 'return millis();'
       # Add your switch-on action
     turn_off_action:
-      - logger.log: "Single Short Clicked"
-      - logger.log: "Switch 1 turned OFF"
-      # Toggle blue LED to indicate button press
-      - light.turn_on:
-          id: rgb_led
-          effect: "Blink"
-      - delay: 1s
-      - light.turn_off: rgb_led
-      - globals.set:
-          id: last_activity_time
-          value: !lambda 'return millis();'
+      - if:
+          condition:
+            lambda: 'return !id(booting);'
+          then:
+            - logger.log: "Single Short Clicked"
+            - logger.log: "Switch 1 turned OFF"
+            - globals.set:
+                id: virtual_toggle_1_state
+                value: 'false'
+            # Toggle blue LED to indicate button press
+            - light.turn_on:
+                id: rgb_led
+                effect: "Blink"
+            - delay: 1s
+            - light.turn_off: rgb_led
+            - globals.set:
+                id: last_activity_time
+                value: !lambda 'return millis();'
       # Add your closing action
 
   - platform: template
@@ -208,38 +222,52 @@ switch:
     id: virtual_toggle_2
     optimistic: true
     turn_on_action:
-      - logger.log: "Double Clicked"
-      - logger.log: "Switch 2 turned ON"
-      # Double blink blue LED to indicate button press
-      - light.turn_on:
-          id: rgb_led
-          brightness: 100%
-          red: 100%
-          green: 50%
-          blue: 0%
-          effect: "Subtle Flicker"
-      - delay: 1s
-      - light.turn_off: rgb_led
-      - globals.set:
-          id: last_activity_time
-          value: !lambda 'return millis();'
+      - if:
+          condition:
+            lambda: 'return !id(booting);'
+          then:
+            - logger.log: "Double Clicked"
+            - logger.log: "Switch 2 turned ON"
+            - globals.set:
+                id: virtual_toggle_2_state
+                value: 'true'
+            # Double blink blue LED to indicate button press
+            - light.turn_on:
+                id: rgb_led
+                brightness: 100%
+                red: 100%
+                green: 50%
+                blue: 0%
+                effect: "Subtle Flicker"
+            - delay: 1s
+            - light.turn_off: rgb_led
+            - globals.set:
+                id: last_activity_time
+                value: !lambda 'return millis();'
       # Add your switch-on action
     turn_off_action:
-      - logger.log: "Double Clicked"
-      - logger.log: "Switch 2 turned OFF"
-      # Double blink blue LED to indicate button press
-      - light.turn_on:
-          id: rgb_led
-          brightness: 100%
-          red: 100%
-          green: 50%
-          blue: 0%
-          effect: "Subtle Flicker"
-      - delay: 1s
-      - light.turn_off: rgb_led
-      - globals.set:
-          id: last_activity_time
-          value: !lambda 'return millis();'
+      - if:
+          condition:
+            lambda: 'return !id(booting);'
+          then:
+            - logger.log: "Double Clicked"
+            - logger.log: "Switch 2 turned OFF"
+            - globals.set:
+                id: virtual_toggle_2_state
+                value: 'false'
+            # Double blink blue LED to indicate button press
+            - light.turn_on:
+                id: rgb_led
+                brightness: 100%
+                red: 100%
+                green: 50%
+                blue: 0%
+                effect: "Subtle Flicker"
+            - delay: 1s
+            - light.turn_off: rgb_led
+            - globals.set:
+                id: last_activity_time
+                value: !lambda 'return millis();'
       # Add your closing action
 
   - platform: template
@@ -247,30 +275,44 @@ switch:
     id: virtual_toggle_3
     optimistic: true
     turn_on_action:
-      - logger.log: "Long Press"
-      - logger.log: "Switch 3 turned ON"
-      # Long blue LED on to indicate button press
-      - light.turn_on:
-          id: rgb_led
-          effect: "Rainbow"
-      - delay: 1s
-      - light.turn_off: rgb_led
-      - globals.set:
-          id: last_activity_time
-          value: !lambda 'return millis();'
+      - if:
+          condition:
+            lambda: 'return !id(booting);'
+          then:
+            - logger.log: "Long Press"
+            - logger.log: "Switch 3 turned ON"
+            - globals.set:
+                id: virtual_toggle_3_state
+                value: 'true'
+            # Long blue LED on to indicate button press
+            - light.turn_on:
+                id: rgb_led
+                effect: "Rainbow"
+            - delay: 1s
+            - light.turn_off: rgb_led
+            - globals.set:
+                id: last_activity_time
+                value: !lambda 'return millis();'
       # Add your switch-on action
     turn_off_action:
-      - logger.log: "Long Press"
-      - logger.log: "Switch 3 turned OFF"
-      # Long blue LED on to indicate button press
-      - light.turn_on:
-          id: rgb_led
-          effect: "Rainbow"
-      - delay: 1s
-      - light.turn_off: rgb_led
-      - globals.set:
-          id: last_activity_time
-          value: !lambda 'return millis();'
+      - if:
+          condition:
+            lambda: 'return !id(booting);'
+          then:
+            - logger.log: "Long Press"
+            - logger.log: "Switch 3 turned OFF"
+            - globals.set:
+                id: virtual_toggle_3_state
+                value: 'false'
+            # Long blue LED on to indicate button press
+            - light.turn_on:
+                id: rgb_led
+                effect: "Rainbow"
+            - delay: 1s
+            - light.turn_off: rgb_led
+            - globals.set:
+                id: last_activity_time
+                value: !lambda 'return millis();'
       # Add your closing action
 
 light:
@@ -319,6 +361,7 @@ light:
 
 binary_sensor:
   - platform: gpio
+    id: button_gpio
     pin:
       number: GPIO2
       inverted: True
@@ -327,62 +370,99 @@ binary_sensor:
         pullup: True
       allow_other_uses: True  # Also used as the wakeup pin for light_sleep
     name: "SeeedStudio IoT Button"
-    on_multi_click:
-      - timing:
-          - ON for at most 1s
-          - OFF for at least 0.5s
-        then:
-          - logger.log: "Single Short Clicked"
-          - switch.toggle: virtual_toggle_1
-
-      - timing:
-          - ON for at most 1s
-          - OFF for at most 1s
-          - ON for at most 1s
-          - OFF for at least 0.2s
-        then:
-          - logger.log: "Double Clicked"
-          - switch.toggle: virtual_toggle_2
-
-      - timing:
-          - ON for 1s to 2s
-          - OFF for at least 0.5s
-        then:
-          - logger.log: "Long Press"
-          - switch.toggle: virtual_toggle_3
     on_press:
-      - globals.set:
-          id: button_press_time
-          value: !lambda 'return millis();'
       - globals.set:
           id: last_activity_time
           value: !lambda 'return millis();'
+      - globals.set:
+          id: press_start_ms
+          value: !lambda 'return millis();'
+      - script.stop: finalize_click
     on_release:
       - globals.set:
           id: last_activity_time
           value: !lambda 'return millis();'
+      - if:
+          condition:
+            lambda: 'return (millis() - id(press_start_ms)) >= 1500;'
+          then:
+            - lambda: |-
+                id(click_count) = 0;
+            - script.stop: finalize_click
+            - switch.toggle: virtual_toggle_3
+          else:
+            - lambda: |-
+                if (id(click_count) < 2) id(click_count)++;
+            - script.execute: finalize_click
 
 globals:
-  - id: button_press_time
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
   - id: last_activity_time
     type: uint32_t
     restore_value: no
     initial_value: '0'
+  - id: sleep_timeout_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '120000'
+  - id: press_start_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+  - id: click_count
+    type: uint8_t
+    restore_value: no
+    initial_value: '0'
+  - id: booting
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+  - id: virtual_toggle_1_state
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+  - id: virtual_toggle_2_state
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+  - id: virtual_toggle_3_state
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
   - id: last_battery_percentage
     type: float
     restore_value: yes
     initial_value: '100.0'
+
+script:
+  - id: finalize_click
+    mode: restart
+    then:
+      - delay: 700ms
+      - if:
+          condition:
+            lambda: 'return id(click_count) == 1;'
+          then:
+            - switch.toggle: virtual_toggle_1
+          else:
+            - if:
+                condition:
+                  lambda: 'return id(click_count) >= 2;'
+                then:
+                  - switch.toggle: virtual_toggle_2
+      - lambda: |-
+          id(click_count) = 0;
 
 interval:
   - interval: 10s
     then:
       - if:
           condition:
-            lambda: 'return (millis() - id(last_activity_time)) >= 120000;'
+            lambda: 'return (millis() - id(last_activity_time)) >= id(sleep_timeout_ms);'
           then:
-            - logger.log: "No activity for 2 minutes, entering light sleep"
-            - light_sleep.enter:
-                id: light_sleep_1
+            - logger.log: "No activity for 2 minutes, entering deep sleep"
+            - output.turn_off: battery_enable_pin
+            - light.turn_off: blue_led
+            - light.turn_off: red_led
+            - light.turn_off: rgb_led
+            - deep_sleep.enter:
+                id: deep_sleep_1
