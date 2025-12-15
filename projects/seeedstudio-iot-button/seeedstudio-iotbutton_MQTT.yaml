@@ -38,7 +38,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/Seeed-Studio/xiao-esphome-projects
-      ref: dev
+      ref: main
     components: [ light_sleep ]
     refresh: 0s
 
@@ -88,7 +88,9 @@ output:
 
 light_sleep:
   id: light_sleep_1
-  wakeup_pin: 9
+  wakeup_pin: 
+    number: GPIO9
+    allow_other_uses: True 
   on_prepare_sleep:
     then:
       - logger.log: "Preparing to enter light sleep"
@@ -270,6 +272,7 @@ binary_sensor:
       mode:
         input: True
         pullup: True
+      allow_other_uses: True
     name: "SeeedStudio IoT Button"
     on_multi_click:
       - timing:
