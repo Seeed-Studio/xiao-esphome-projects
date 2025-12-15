@@ -18,6 +18,7 @@ jobs:
         projects/seeedstudio-iot-button/seeedstudio-iot-button-v2.yaml
         projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml
         projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave.yaml
+        projects/seeed-esp32-poe/seeed-esp32-poe.yaml
       esphome-version: stable
       release-summary: ${{ github.event.release.body }}
       release-url: ${{ github.event.release.html_url }}

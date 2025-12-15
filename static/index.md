@@ -38,6 +38,12 @@ Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects u
 - **Features**: Supports presence detection, deep sleep, and battery monitoring with a 24GHz mmWave radar sensor.
 <esp-web-install-button manifest="firmware/xiao-24ghz-mmwave.manifest.json"></esp-web-install-button>
 
+## Seeed Studio XIAO W5500 Ethernet Adapter V1.2
+
+- **Description**: Bluetooth proxy device based on W5500.
+- **Features**: Wide-range Bluetooth device detection with POE power supply support.
+<esp-web-install-button manifest="firmware/seeed-esp32-poe.manifest.json"></esp-web-install-button>
+
 ## Installation Notes
 
 - Ensure your browser supports Web Serial (e.g., Chrome or Edge).
