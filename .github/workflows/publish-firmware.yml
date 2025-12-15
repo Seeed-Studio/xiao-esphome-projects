@@ -61,7 +61,7 @@ jobs:
             projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/Seeed_IoT_Button_Zigbee.ino \
             --output-dir ./output/zigbee-${{ matrix.variant }}
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: zigbee-firmware-${{ matrix.variant }}
           path: ./output/zigbee-${{ matrix.variant }}/*.bin
