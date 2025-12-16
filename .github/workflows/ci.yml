@@ -30,7 +30,7 @@ jobs:
             esphome-version: stable
           - file: projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor
             esphome-version: stable
-          - file: projects/seeed-esp32-poe/seeed-esp32-poe
+          - file: projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter
             esphome-version: stable
           - file: projects/xiao_smart_ir_mate/xiao_smart_ir_mate
             esphome-version: dev

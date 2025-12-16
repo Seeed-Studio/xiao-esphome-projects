@@ -1,6 +1,6 @@
-# Seeed Studio XIAO W5500 Ethernet Adapter V1.2
+# XIAO W5500 Ethernet Adapter
 
-Seeed Studio XIAO W5500 Ethernet Adapter V1.2 enables the XIAO ESP32S3 to operate as a high-performance Bluetooth Proxy for Home Assistant.By utilizing a stable Ethernet connection for data backhaul instead of Wi-Fi, this setup eliminates wireless interference, freeing up the ESP32's radio strictly for scanning Bluetooth Low Energy (BLE) devices. 
+XIAO W5500 Ethernet Adapter enables the XIAO ESP32S3 to operate as a high-performance Bluetooth Proxy for Home Assistant.By utilizing a stable Ethernet connection for data backhaul instead of Wi-Fi, this setup eliminates wireless interference, freeing up the ESP32's radio strictly for scanning Bluetooth Low Energy (BLE) devices. 
 
 ⚠️ Hardware Note: This configuration is strictly for V1.2 boards produced after November 1, 2025. Please check your hardware version before flashing.
 
@@ -35,7 +35,7 @@ Seeed Studio XIAO W5500 Ethernet Adapter V1.2 enables the XIAO ESP32S3 to operat
 2. **Flash the Device**:  
    Use the following command to upload the configuration:
    ```bash
-   esphome run seeed-esp32-poe.yaml
+   esphome run xiao-w5500-ethernet-adapter.yaml
    ```
 
 3. **Add to Home Assistant**:  
