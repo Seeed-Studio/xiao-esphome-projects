@@ -30,12 +30,12 @@ jobs:
             esphome-version: stable
           - file: projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor
             esphome-version: stable
+          - file: projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave
+            esphome-version: stable
           - file: projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter
             esphome-version: stable
           - file: projects/xiao_smart_ir_mate/xiao_smart_ir_mate
             esphome-version: dev
-          #- projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave
-        #### Modify above here to match your project ####
 
     steps:
       - name: Checkout source code
