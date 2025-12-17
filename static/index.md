@@ -24,7 +24,7 @@ Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects u
 
 - **Description**: Enhanced IoT button supporting ESPHome (WiFi) and Zigbee (Arduino).
 - **Features**: Single, double, and long press actions; RGB LED feedback; battery monitoring; red/blue LEDs; light sleep (ESPHome) or deep sleep (Zigbee) after 2 minutes; Home Assistant or Zigbee integration.
-<esp-web-install-button manifest="firmware/seeedstudio-iot-button-v2.manifest.json"></esp-web-install-button>
+<esp-web-install-button manifest="firmware/seeedstudio-iotbutton-v2.manifest.json"></esp-web-install-button>
 
 ## XIAO Smart IR Mate
 
