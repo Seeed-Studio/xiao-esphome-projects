@@ -1,6 +1,6 @@
 substitutions:
   name: "seeedstudio-iotbutton-v2"
-  friendly_name: "SeeedStudio IoT Button V2"
+  friendly_name: "Seeed Studio IoT Button V2"
 
 esphome:
   name: "${name}"
