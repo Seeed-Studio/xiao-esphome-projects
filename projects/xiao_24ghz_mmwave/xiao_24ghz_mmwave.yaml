@@ -82,7 +82,7 @@ external_components:
       type: git
       url: https://github.com/Seeed-Studio/xiao-esphome-projects
       ref: main
-    components: [ api, ld2410 ]
+    components: [ ld2410 ]
 
 sensor:
   - platform: adc
