@@ -61,11 +61,39 @@ jobs:
             --build-property "build.extra_flags=-D${{ matrix.variant }} -DESP32 -DZIGBEE_MODE_ED -lesp_zb_api.ed -lzboss_stack.ed -lzboss_port.native" \
             projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/Seeed_IoT_Button_Zigbee.ino \
             --output-dir ./output/zigbee-${{ matrix.variant }}
+      - name: Prepare Zigbee artifact for release uploader
+        run: |
+          set -euo pipefail
+          version="${{ github.event.release.tag_name }}"
+          device="zigbee-firmware-${{ matrix.variant }}"
+
+          out_dir="./output/zigbee-${{ matrix.variant }}"
+          ver_dir="$out_dir/$version"
+          mkdir -p "$ver_dir"
+
+          shopt -s nullglob
+          for f in "$out_dir"/*.bin; do
+            mv "$f" "$ver_dir/"
+          done
+
+          cat > "$ver_dir/manifest.json" <<EOF
+          {
+            "name": "$device",
+            "version": "$version",
+            "variant": "${{ matrix.variant }}",
+            "artifact_files": [
+              "Seeed_IoT_Button_Zigbee.ino.bin",
+              "Seeed_IoT_Button_Zigbee.ino.bootloader.bin",
+              "Seeed_IoT_Button_Zigbee.ino.merged.bin",
+              "Seeed_IoT_Button_Zigbee.ino.partitions.bin"
+            ]
+          }
+          EOF
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
           name: zigbee-firmware-${{ matrix.variant }}
-          path: ./output/zigbee-${{ matrix.variant }}/*.bin
+          path: ./output/zigbee-${{ matrix.variant }}
           retention-days: 1
 
   upload-to-release:
