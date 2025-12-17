@@ -37,7 +37,9 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
   - WiFi connectivity with fallback AP mode.
   - Battery monitoring (voltage and percentage).
   - Red and blue LEDs for status.
-  - Light sleep mode after 2 minutes of inactivity, wakeup on button press.
+  - Deep sleep with wakeup on button press:
+    - In provisioning (fallback AP) mode: enter deep sleep after 2 minutes of inactivity.
+    - After connecting to WiFi: enter deep sleep after 30 seconds of inactivity.
 - **Arduino with Zigbee**:
   - Zigbee communication.
   - Battery monitoring.
@@ -106,7 +108,11 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
 - **Status LEDs**:
   - V1: Blue LED indicates status.
   - V2: Blue LED for normal operation, red LED for low battery/errors.
-- **Power Saving**: Light sleep after 2 minutes of inactivity.
+- **Power Saving**:
+  - V1: Light sleep after 2 minutes of inactivity.
+  - V2: Deep sleep with wakeup on button press:
+    - In provisioning (fallback AP) mode: enter deep sleep after 2 minutes of inactivity.
+    - After connecting to WiFi: enter deep sleep after 30 seconds of inactivity.
 
 ### ESPHome (MQTT)
 
