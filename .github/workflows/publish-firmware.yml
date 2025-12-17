@@ -4,6 +4,10 @@ on:
   release:
     types: [published]
 
+concurrency:
+  group: publish-firmware-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -39,15 +43,29 @@ jobs:
   build-firmware-arduino:
     name: Build Zigbee Arduino Firmware
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        variant: [IOT_BUTTON_V1, IOT_BUTTON_V2]
+        include:
+          - variant: IOT_BUTTON_V1
+            device: Seeed_IoT_Button_Zigbee_V1
+          - variant: IOT_BUTTON_V2
+            device: Seeed_IoT_Button_Zigbee_V2
     steps:
       - name: Checkout source code
         uses: actions/checkout@v5
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v2
+      - name: Cache Arduino cores and libraries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15
+            ~/.cache/arduino
+          key: ${{ runner.os }}-arduino-esp32-3.2.1-${{ hashFiles('projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/**') }}
+          restore-keys: |
+            ${{ runner.os }}-arduino-esp32-3.2.1-
       - name: Install ESP32 platform
         run: |
           arduino-cli core update-index
@@ -60,20 +78,23 @@ jobs:
           arduino-cli compile --fqbn esp32:esp32:esp32c6:PartitionScheme=zigbee,ZigbeeMode=ed \
             --build-property "build.extra_flags=-D${{ matrix.variant }} -DESP32 -DZIGBEE_MODE_ED -lesp_zb_api.ed -lzboss_stack.ed -lzboss_port.native" \
             projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/Seeed_IoT_Button_Zigbee.ino \
-            --output-dir ./output/zigbee-${{ matrix.variant }}
+            --output-dir ./output/${{ matrix.device }}
       - name: Prepare Zigbee artifact for release uploader
         run: |
           set -euo pipefail
           version="${{ github.event.release.tag_name }}"
-          device="zigbee-firmware-${{ matrix.variant }}"
+          device="${{ matrix.device }}"
 
-          out_dir="./output/zigbee-${{ matrix.variant }}"
+          out_dir="./output/${{ matrix.device }}"
           ver_dir="$out_dir/$version"
           mkdir -p "$ver_dir"
 
           shopt -s nullglob
+          # Move and rename binaries to avoid V1/V2 collisions.
           for f in "$out_dir"/*.bin; do
-            mv "$f" "$ver_dir/"
+            base="$(basename "$f")"
+            new_base="${base/Seeed_IoT_Button_Zigbee/${device}}"
+            mv "$f" "$ver_dir/$new_base"
           done
 
           cat > "$ver_dir/manifest.json" <<EOF
@@ -82,18 +103,19 @@ jobs:
             "version": "$version",
             "variant": "${{ matrix.variant }}",
             "artifact_files": [
-              "Seeed_IoT_Button_Zigbee.ino.bin",
-              "Seeed_IoT_Button_Zigbee.ino.bootloader.bin",
-              "Seeed_IoT_Button_Zigbee.ino.merged.bin",
-              "Seeed_IoT_Button_Zigbee.ino.partitions.bin"
+              "${{ matrix.device }}.ino.bin",
+              "${{ matrix.device }}.ino.bootloader.bin",
+              "${{ matrix.device }}.ino.merged.bin",
+              "${{ matrix.device }}.ino.partitions.bin"
             ]
           }
           EOF
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
-          name: zigbee-firmware-${{ matrix.variant }}
-          path: ./output/zigbee-${{ matrix.variant }}
+          # Artifact name determines the final uploaded manifest name in upload-to-gh-release.
+          name: ${{ matrix.device }}
+          path: ./output/${{ matrix.device }}
           retention-days: 1
 
   upload-to-release:
