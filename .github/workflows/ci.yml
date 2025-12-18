@@ -51,8 +51,14 @@ jobs:
             esphome-version: stable
           - file: projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter
             esphome-version: stable
+          - file: projects/MR60BHA2_mmwave_sensor/MR60BHA2_mmwave_sensor
+            esphome-version: stable
+          - file: projects/MR60FDA2_mmwave_sensor/MR60FDA2_mmwave_sensor
+            esphome-version: stable
           - file: projects/xiao_smart_ir_mate/xiao_smart_ir_mate
             esphome-version: dev
+
+            
 
     steps:
       - name: Checkout source code

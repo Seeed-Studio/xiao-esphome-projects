@@ -23,6 +23,8 @@ jobs:
         projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml
         projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave.yaml
         projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter.yaml
+        projects/MR60BHA2_mmwave_sensor/MR60BHA2_mmwave_sensor.yaml
+        projects/MR60FDA2_mmwave_sensor/MR60FDA2_mmwave_sensor.yaml
       esphome-version: stable
       release-summary: ${{ github.event.release.body }}
       release-url: ${{ github.event.release.html_url }}
