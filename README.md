@@ -83,13 +83,13 @@ XIAO W5500 Ethernet Adapter enables the XIAO ESP32S3 to operate as a high-perfor
 
 MR60BHA2 is a 60GHz mmWave radar sensor kit (XIAO ESP32-C6 based) for non-contact vital signs monitoring. It supports presence detection, real-time heart rate and respiratory rate, distance measurement, and target counting, with Home Assistant integration via ESPHome.
 
-For details and usage, see [projects/MR60BHA2_mmwave_sensor/README.md](projects/MR60BHA2_mmwave_sensor/README.md).
+For details and usage, see [projects/seeedstudio-mr60bha2-kit/README.md](projects/seeedstudio-mr60bha2-kit/README.md).
 
 ### Project 8: Seeed Studio MR60FDA2 60GHz mmWave Fall Detection Sensor
 
 MR60FDA2 is a 60GHz mmWave radar sensor kit (XIAO ESP32-C6 based) focused on fall detection and presence monitoring. It provides fall alerts, configurable install parameters (height/threshold/sensitivity), and Home Assistant integration via ESPHome.
 
-For details and usage, see [projects/MR60FDA2_mmwave_sensor/README.md](projects/MR60FDA2_mmwave_sensor/README.md).
+For details and usage, see [projects/seeedstudio-mr60fda2-kit/README.md](projects/seeedstudio-mr60fda2-kit/README.md).
 
 ## Installation
 

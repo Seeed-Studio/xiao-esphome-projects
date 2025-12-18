@@ -52,7 +52,7 @@ This project provides an ESPHome configuration for the Seeed Studio MR60BHA2 Kit
 1. **Clone the Project:**
    ```sh
    git clone https://github.com/Seeed-Studio/xiao-esphome-projects
-   cd xiao-esphome-projects/projects/MR60BHA2_mmwave_sensor
+   cd xiao-esphome-projects/projects/seeedstudio-mr60bha2-kit
    ```
 
 2. **Install ESPHome:**
@@ -62,7 +62,7 @@ This project provides an ESPHome configuration for the Seeed Studio MR60BHA2 Kit
    Or use Home Assistant ESPHome add-on.
 
 3. **Configure WiFi:**
-   Edit `MR60BHA2_mmwave_sensor.yaml` and add your WiFi credentials:
+    Edit `seeedstudio-mr60bha2-kit.yaml` and add your WiFi credentials:
    ```yaml
    wifi:
      ssid: "YOUR_WIFI_SSID"
@@ -72,7 +72,7 @@ This project provides an ESPHome configuration for the Seeed Studio MR60BHA2 Kit
 4. **Compile and Upload:**
    Connect your XIAO ESP32-C6 via USB and run:
    ```sh
-   esphome run MR60BHA2_mmwave_sensor.yaml
+   esphome run seeedstudio-mr60bha2-kit.yaml
    ```
 
 5. **Add to Home Assistant:**

@@ -51,9 +51,9 @@ jobs:
             esphome-version: stable
           - file: projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter
             esphome-version: stable
-          - file: projects/MR60BHA2_mmwave_sensor/MR60BHA2_mmwave_sensor
+          - file: projects/seeedstudio-mr60bha2-kit/seeedstudio-mr60bha2-kit
             esphome-version: stable
-          - file: projects/MR60FDA2_mmwave_sensor/MR60FDA2_mmwave_sensor
+          - file: projects/seeedstudio-mr60fda2-kit/seeedstudio-mr60fda2-kit
             esphome-version: stable
           - file: projects/xiao_smart_ir_mate/xiao_smart_ir_mate
             esphome-version: dev
