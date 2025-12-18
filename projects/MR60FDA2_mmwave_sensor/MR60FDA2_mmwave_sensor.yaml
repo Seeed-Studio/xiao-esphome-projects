@@ -1,0 +1,129 @@
+substitutions:
+  name: "seeedstudio-mr60fda2-kit"
+  friendly_name: "Seeed Studio MR60FDA2 Kit"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: true
+  project:
+    name: "seeedstudio.mr60fda2_kit"
+    version: "2.1"
+  platformio_options:
+    board_upload.maximum_size: 4194304
+  min_version: "2024.3.2" # Fix logger compile error on ESP32-C6 esphome#6323
+
+esp32:
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
+  flash_size: 4MB # upload.flash_size
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_FREERTOS_UNICORE: y
+      CONFIG_FREERTOS_HZ: '1000'
+      CONFIG_PM_USE_RTC_TIMER_REF: y
+      CONFIG_XTAL_FREQ_40: y
+      CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ: '80000000'
+      CONFIG_PM_DFS_INIT_AUTO: n
+      CONFIG_FREERTOS_USE_TICKLESS_IDLE: y
+      CONFIG_PM_ENABLE: y
+      CONFIG_PM_SLP_IRAM_OPT: y
+      CONFIG_PM_RTOS_IDLE_OPT: y
+      CONFIG_ESP_WIFI_SLP_IRAM_OPT: y
+      CONFIG_PM_POWER_DOWN_CPU_IN_LIGHT_SLEEP: y
+      CONFIG_PM_PROFILING: y
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/ssieb/esphome
+      ref: adc
+    components: [ adc ]
+    refresh: 1min
+  - source:
+      type: git
+      url: https://github.com/limengdu/MR60FDA2_ESPHome_external_components
+      ref: main
+    components: [ seeed_mr60fda2 ]
+    refresh: 0s
+
+# Enable logging
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "seeedstudio-mr60fda2"
+
+captive_portal:
+
+# For XIAO ESP32C6 Onboard LED
+# light:
+#   - platform: status_led
+#     name: "Switch state"
+#     pin: GPIO15
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: led_ring
+    name: "Seeed MR60FDA2 RGB Light"
+    pin: GPIO1
+    num_leds: 1
+    rgb_order: GRB
+    chipset: ws2812
+
+i2c:
+  sda: GPIO22
+  scl: GPIO23
+  scan: true
+  id: bus_a
+
+sensor:
+  - platform: bh1750
+    name: "Seeed MR60FDA2 Illuminance"
+    address: 0x23
+    update_interval: 1s
+
+uart:
+  id: seeed_mr60fda2_uart
+  baud_rate: 115200
+  rx_pin: 17
+  tx_pin: 16
+  parity: NONE
+  stop_bits: 1
+
+seeed_mr60fda2:
+  id: my_seeed_mr60fda2
+  uart_id: seeed_mr60fda2_uart
+
+binary_sensor:
+  - platform: seeed_mr60fda2
+    people_exist:
+      name: "Person Information"
+    fall_detected:
+      name: "Falling Information"
+
+button:
+  - platform: seeed_mr60fda2
+    get_radar_parameters:
+      name: "Get Radar Parameters"
+    factory_reset:
+      name: "Reset"
+
+select:
+  - platform: seeed_mr60fda2
+    install_height:
+      name: "Set Install Height"
+    height_threshold:
+      name: "Set Height Threshold"
+    sensitivity:
+      name: "Set Sensitivity"
