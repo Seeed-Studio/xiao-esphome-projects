@@ -38,6 +38,18 @@ Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects u
 - **Features**: Supports presence detection, deep sleep, and battery monitoring with a 24GHz mmWave radar sensor.
 <esp-web-install-button manifest="firmware/xiao-24ghz-mmwave.manifest.json"></esp-web-install-button>
 
+## Seeed Studio MR60BHA2 60GHz mmWave Sensor Kit
+
+- **Description**: 60GHz mmWave radar sensor kit for non-contact vital signs monitoring (presence, heart rate, respiratory rate).
+- **Features**: Presence detection, real-time heart rate & respiratory rate, distance measurement, target counting, Home Assistant integration.
+<esp-web-install-button manifest="firmware/seeedstudio-mr60bha2-kit.manifest.json"></esp-web-install-button>
+
+## Seeed Studio MR60FDA2 60GHz mmWave Sensor Kit
+
+- **Description**: 60GHz mmWave radar sensor kit for fall detection and presence monitoring.
+- **Features**: Fall detection alerts, configurable install parameters (height/threshold/sensitivity), Home Assistant integration.
+<esp-web-install-button manifest="firmware/seeedstudio-mr60fda2-kit.manifest.json"></esp-web-install-button>
+
 ## XIAO W5500 Ethernet Adapter V1.2
 
 - **Description**: Bluetooth proxy device based on W5500.
