@@ -21,6 +21,8 @@ Welcome to the XIAO ESPHome Projects repository! This repository contains a coll
     - [Project 4: XIAO Smart IR Mate](#project-4-xiao-smart-ir-mate)
     - [Project 5: XIAO 24GHz mmWave](#project-5-xiao-24ghz-mmwave)
     - [Project 6: XIAO W5500 Ethernet Adapter](#project-6-xiao-w5500-ethernet-adapter)
+    - [Project 7: Seeed Studio MR60BHA2 60GHz mmWave Vital Signs Sensor](#project-7-seeed-studio-mr60bha2-60ghz-mmwave-vital-signs-sensor)
+    - [Project 8: Seeed Studio MR60FDA2 60GHz mmWave Fall Detection Sensor](#project-8-seeed-studio-mr60fda2-60ghz-mmwave-fall-detection-sensor)
   - [Installation](#installation)
     - [📱 Web Installer - One-Click Firmware Installation](#-web-installer---one-click-firmware-installation)
   - [Contributing](#contributing)
@@ -76,6 +78,18 @@ XIAO 24GHz mmWave is an ESPHome project for the Seeed Studio XIAO ESP32-C6 board
 ### Project 6: XIAO W5500 Ethernet Adapter
 
 XIAO W5500 Ethernet Adapter enables the XIAO ESP32S3 to operate as a high-performance Bluetooth Proxy for Home Assistant.By utilizing a stable Ethernet connection for data backhaul instead of Wi-Fi, this setup eliminates wireless interference, freeing up the ESP32's radio strictly for scanning Bluetooth Low Energy (BLE) devices. 
+
+### Project 7: Seeed Studio MR60BHA2 60GHz mmWave Vital Signs Sensor
+
+MR60BHA2 is a 60GHz mmWave radar sensor kit (XIAO ESP32-C6 based) for non-contact vital signs monitoring. It supports presence detection, real-time heart rate and respiratory rate, distance measurement, and target counting, with Home Assistant integration via ESPHome.
+
+For details and usage, see [projects/MR60BHA2_mmwave_sensor/README.md](projects/MR60BHA2_mmwave_sensor/README.md).
+
+### Project 8: Seeed Studio MR60FDA2 60GHz mmWave Fall Detection Sensor
+
+MR60FDA2 is a 60GHz mmWave radar sensor kit (XIAO ESP32-C6 based) focused on fall detection and presence monitoring. It provides fall alerts, configurable install parameters (height/threshold/sensitivity), and Home Assistant integration via ESPHome.
+
+For details and usage, see [projects/MR60FDA2_mmwave_sensor/README.md](projects/MR60FDA2_mmwave_sensor/README.md).
 
 ## Installation
 
