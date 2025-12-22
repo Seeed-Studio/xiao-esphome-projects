@@ -64,7 +64,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v5
       - name: Cache ESPHome build dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
@@ -98,7 +98,7 @@ jobs:
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v2
       - name: Cache Arduino cores and libraries
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.arduino15
