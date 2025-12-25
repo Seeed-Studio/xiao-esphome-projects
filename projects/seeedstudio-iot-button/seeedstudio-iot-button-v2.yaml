@@ -1,6 +1,7 @@
 substitutions:
   name: "seeedstudio-iotbutton-v2"
   friendly_name: "Seeed Studio IoT Button V2"
+  battery_multiplier: "3.0" 
 
 esphome:
   name: "${name}"
@@ -8,7 +9,7 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: "seeedstudio.iot_button_v2"
-    version: "1.0"
+    version: "1.1"
   platformio_options:
     board_upload.maximum_size: 4194304
   on_boot:
@@ -16,7 +17,7 @@ esphome:
     then:
       - light.turn_off: blue_led
       - light.turn_on: red_led
-      - output.turn_on: battery_enable_pin
+      - script.execute: measure_battery # Measure battery immediately on startup
       - lambda: |-
           auto cause = esp_sleep_get_wakeup_cause();
           if ((cause == ESP_SLEEP_WAKEUP_EXT0 || cause == ESP_SLEEP_WAKEUP_EXT1) && id(button_gpio).state) {
@@ -57,11 +58,6 @@ esp32:
       CONFIG_PM_POWER_DOWN_CPU_IN_LIGHT_SLEEP: y
       CONFIG_PM_PROFILING: y
 
-external_components:
-  - source: github://PhracturedBlue/c6_adc
-    components: [ c6_adc ]
-    refresh: 0s
-
 # Enable logging
 logger:
   hardware_uart: USB_SERIAL_JTAG
@@ -88,10 +84,7 @@ wifi:
       - globals.set:
           id: sleep_timeout_ms
           value: '30000'
-      - lambda: |-
-          id(battery_voltage).update();
-          delay(50);
-          id(battery_percentage).update();
+      - script.execute: measure_battery
 
   on_disconnect:
     then:
@@ -126,43 +119,52 @@ deep_sleep:
   wakeup_pin_mode: INVERT_WAKEUP
 
 sensor:
-  - platform: c6_adc
+  - platform: adc
     pin: GPIO1
     name: "Battery Voltage"
     id: battery_voltage
-    update_interval: 30s
+    update_interval: never 
     attenuation: 12db
     unit_of_measurement: "V"
     accuracy_decimals: 2
     filters:
-      - multiply: 3.0 
-      - sliding_window_moving_average: # Smoothing voltage fluctuations
-          window_size: 5
+      - multiply: ${battery_multiplier}
+      - sliding_window_moving_average:
+          window_size: 10
+          send_every: 10
+      - exponential_moving_average:
+          alpha: 0.1
           send_every: 1
-          send_first_at: 1
+
   - platform: template
     name: "Battery Percentage"
     id: battery_percentage
-    update_interval: 30s
+    update_interval: never
     unit_of_measurement: "%"
     accuracy_decimals: 0
     icon: "mdi:battery"
+    device_class: "battery"
     lambda: |-
-      float voltage = id(battery_voltage).state;
-      if (isnan(voltage) || voltage < 2.75f || voltage > 4.2f) {
-        return NAN;
-      }
-      float percentage = ((voltage - 2.75f) / (4.2f - 2.75f)) * 100.0f;
-      percentage = clamp(percentage, 0.0f, 100.0f);
-      if (percentage > id(last_battery_percentage) && (percentage - id(last_battery_percentage)) < 5.0f) {
-        percentage = id(last_battery_percentage);
-      } else {
-        id(last_battery_percentage) = percentage;
-      }
-      return percentage;
+      float v = id(battery_voltage).state;
+      if (isnan(v) || v < 2.75f) return {};
 
-    
-# Switch to control the LED strip power
+      // --- Lookup table algorithm: precise mapping of lithium battery discharge curve ---
+      float pct;
+      if (v >= 4.15f) pct = 100.0f;
+      else if (v >= 4.0f) pct = 90.0f + (v - 4.0f) * 66.7f;
+      else if (v >= 3.7f) pct = 20.0f + (v - 3.7f) * 233.3f;
+      else if (v >= 3.5f) pct = 5.0f + (v - 3.5f) * 75.0f;
+      else if (v >= 3.0f) pct = (v - 3.0f) * 10.0f;
+      else pct = 0.0f;
+
+      // --- Anti-jitter logic: ensure numerical stability ---
+      if (pct > id(last_battery_percentage) && (pct - id(last_battery_percentage)) < 8.0f) {
+        pct = id(last_battery_percentage);
+      } else {
+        id(last_battery_percentage) = pct;
+      }
+      return pct;
+
 switch:
   - platform: output
     name: "LED Strip Power"
@@ -433,7 +435,20 @@ globals:
     restore_value: yes
     initial_value: '100.0'
 
+# Measurement script: ensure gate control is enabled before measurement and disabled after
 script:
+  - id: measure_battery
+    then:
+      - output.turn_on: battery_enable_pin
+      - delay: 50ms # Wait for hardware circuit to stabilize
+      - repeat:
+          count: 10
+          then:
+            - component.update: battery_voltage
+            - delay: 5ms
+      - component.update: battery_percentage
+      - output.turn_off: battery_enable_pin
+
   - id: finalize_click
     mode: restart
     then:

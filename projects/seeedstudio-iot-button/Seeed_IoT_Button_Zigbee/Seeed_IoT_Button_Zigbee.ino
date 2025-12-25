@@ -10,6 +10,9 @@
 #include <esp_sleep.h>
 #include "driver/rtc_io.h"
 
+// Software version
+#define VERSION "1.1"
+
 // Logging macro switch
 #define ENABLE_LOGGING // Comment out to disable logging
 
@@ -57,7 +60,8 @@ const uint32_t MULTI_CLICK_TIME = 300;             // Maximum time between click
 const uint32_t SHORT_LONG_PRESS_TIME = 1000;       // Minimum time for short long press (1 second)
 const uint32_t LONG_PRESS_TIME = 5000;             // Minimum time for long press (5 seconds)
 const uint32_t DEBOUNCE_TIME = 20;                 // Debounce time (ms)
-const uint32_t INACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes inactivity timeout (ms)
+const uint32_t SLEEP_TIMEOUT_DISCONNECTED = 2 * 60 * 1000; // 2 minutes when disconnected (for configuration) (ms)
+const uint32_t SLEEP_TIMEOUT_CONNECTED = 30 * 1000; // 30 seconds when connected (ms)
 
 /* LED Configuration */
 CRGB rgbs[NUM_RGBS];
@@ -101,6 +105,7 @@ uint32_t lastActivityTime = 0;  // Tracks last button activity for sleep
 volatile bool isAwake = true;   // Tracks device awake/sleep state
 bool lastConnected = false;     // Track previous Zigbee connection state
 bool zigbeeInitialized = false; // Track Zigbee initialization status
+bool zigbeeConnected = false; // Track Zigbee connection status for battery sampling
 
 #if defined(IOT_BUTTON_V2)
 // RTC variables for button state persistence
@@ -109,6 +114,7 @@ RTC_DATA_ATTR uint32_t lastReleaseTimeRTC = 0;
 RTC_DATA_ATTR uint8_t clickCountRTC = 0;
 RTC_DATA_ATTR bool longPressTriggeredRTC = false;
 RTC_DATA_ATTR bool clickSequenceActiveRTC = false;
+RTC_DATA_ATTR float lastBatteryPercentageRTC = 100.0;
 
 float emaVoltage = 0.0;
 float batteryPercentage = 100.0;
@@ -119,7 +125,7 @@ float batteryPercentage = 100.0;
 void measureBattery()
 {
   digitalWrite(BATTERY_ENABLE_PIN, HIGH);
-  vTaskDelay(10 / portTICK_PERIOD_MS); // Wait for stabilization
+  vTaskDelay(50 / portTICK_PERIOD_MS); // Increased delay for ADC stabilization and gate delay
 
   // Take multiple samples and compute average
   float adcSum = 0;
@@ -131,12 +137,13 @@ void measureBattery()
   digitalWrite(BATTERY_ENABLE_PIN, LOW);
 
   float adcAverage = adcSum / SAMPLE_COUNT;
-  float voltage = (adcAverage / 4095.0) * 3.3 * 3.0; // Apply divider ratio
+  float voltage = (adcAverage / 4095.0) * 3.3 * 4.0; // Apply divider ratio
 
   if (voltage < MIN_VOLTAGE)
   {
     emaVoltage = 0.0;
     batteryPercentage = 0.0;
+    lastBatteryPercentageRTC = 0.0;
     LOG_PRINTF("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
                voltage, emaVoltage, batteryPercentage);
   }
@@ -153,17 +160,28 @@ void measureBattery()
     }
 
     // Calculate battery percentage from emaVoltage
-    float localBatteryPercentage = (emaVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE) * 100;
-    if (localBatteryPercentage < 0)
-      localBatteryPercentage = 0;
-    if (localBatteryPercentage > 100)
-      localBatteryPercentage = 100;
+    // Lookup table algorithm: precise mapping of lithium battery discharge curve
+    float localBatteryPercentage;
+    if (emaVoltage >= 4.15f) localBatteryPercentage = 100.0f;
+    else if (emaVoltage >= 4.0f) localBatteryPercentage = 90.0f + (emaVoltage - 4.0f) * 66.7f;
+    else if (emaVoltage >= 3.7f) localBatteryPercentage = 20.0f + (emaVoltage - 3.7f) * 233.3f;
+    else if (emaVoltage >= 3.5f) localBatteryPercentage = 5.0f + (emaVoltage - 3.5f) * 75.0f;
+    else if (emaVoltage >= 3.0f) localBatteryPercentage = (emaVoltage - 3.0f) * 10.0f;
+    else localBatteryPercentage = 0.0f;
 
-    // Update global battery percentage
+    // Clamp to 0-100 range
+    localBatteryPercentage = constrain(localBatteryPercentage, 0.0f, 100.0f);
+    
+    // Anti-jitter logic: ensure numerical stability
+    if (localBatteryPercentage > lastBatteryPercentageRTC && (localBatteryPercentage - lastBatteryPercentageRTC) < 8.0f) {
+        batteryPercentage = lastBatteryPercentageRTC;
+    } else {
     batteryPercentage = localBatteryPercentage;
+        lastBatteryPercentageRTC = batteryPercentage;
+    }
 
-    LOG_PRINTF("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
-               voltage, emaVoltage, localBatteryPercentage);
+    LOG_PRINTF("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%% (stored: %.2f%%)\n",
+               voltage, emaVoltage, localBatteryPercentage, batteryPercentage);
   }
 }
 #endif
@@ -583,7 +601,8 @@ void sleepTask(void *pvParameters)
 {
   while (1)
   {
-    if (isAwake && (millis() - lastActivityTime > INACTIVITY_TIMEOUT))
+    uint32_t sleepTimeout = zigbeeConnected ? SLEEP_TIMEOUT_CONNECTED : SLEEP_TIMEOUT_DISCONNECTED;
+    if (isAwake && (millis() - lastActivityTime > sleepTimeout))
     {
       LOG_PRINTLN("Entering sleep due to inactivity");
 #if defined(IOT_BUTTON_V1)
@@ -756,11 +775,13 @@ void loop()
     if (currentConnected && !lastConnected)
     {
       LOG_PRINTLN("Zigbee connected!");
+      zigbeeConnected = true;
       onZigbeeConnected();
     }
     else if (!currentConnected && lastConnected)
     {
       LOG_PRINTLN("Zigbee disconnected!");
+      zigbeeConnected = false;
     }
     lastConnected = currentConnected;
     if (!currentConnected)
