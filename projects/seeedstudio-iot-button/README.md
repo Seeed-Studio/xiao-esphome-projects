@@ -35,16 +35,16 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
 
 - **ESPHome**:
   - WiFi connectivity with fallback AP mode.
-  - Battery monitoring (voltage and percentage).
-  - Red and blue LEDs for status.
+  - Battery monitoring (voltage and percentage) with sliding window and exponential moving average filtering, and precise percentage mapping based on a lithium battery discharge curve.
+  - Red and blue LEDs for status indication
   - Deep sleep with wakeup on button press:
-    - In provisioning (fallback AP) mode: enter deep sleep after 2 minutes of inactivity.
-    - After connecting to WiFi: enter deep sleep after 30 seconds of inactivity.
+    - In provisioning (fallback AP) mode: enters deep sleep after 2 minutes of inactivity.
+    - After connecting to WiFi: enters deep sleep after 30 seconds of inactivity.
 - **Arduino with Zigbee**:
   - Zigbee communication.
-  - Battery monitoring.
-  - Red and blue LEDs for status.
-  - Deep sleep mode after 2 minutes of inactivity, wakeup on button press.
+  - Battery monitoring with lookup table and anti-jitter logic for stable and accurate percentage reporting.
+  - Red and blue LEDs for status indication: blue for normal operation, red for errors or low battery.
+  - Deep sleep mode after inactivity: 2 minutes when not connected, 30 seconds when connected to Zigbee network. Wakeup on button press.
 
 ## Hardware Pinout
 
@@ -111,8 +111,8 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
 - **Power Saving**:
   - V1: Light sleep after 2 minutes of inactivity.
   - V2: Deep sleep with wakeup on button press:
-    - In provisioning (fallback AP) mode: enter deep sleep after 2 minutes of inactivity.
-    - After connecting to WiFi: enter deep sleep after 30 seconds of inactivity.
+    - In provisioning (fallback AP) mode: enters deep sleep after 2 minutes of inactivity.
+    - After connecting to WiFi: enters deep sleep after 30 seconds of inactivity.
 
 ### ESPHome (MQTT)
 
@@ -141,7 +141,7 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
   - V2: Blue LED for operation, red LED for low battery/disconnection.
 - **Power Saving**:
   - V1: Light sleep after 2 minutes.
-  - V2: Deep sleep after 2 minutes.
+  - V2: Deep sleep after 2 minutes if not connected, or 30 seconds if connected to Zigbee network.
 
 ## Getting Started
 
