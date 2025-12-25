@@ -9,6 +9,7 @@
 #include <freertos/queue.h>
 #include <esp_sleep.h>
 #include "driver/rtc_io.h"
+#include <Preferences.h>
 
 // Software version
 #define VERSION "1.1"
@@ -95,6 +96,9 @@ RTC_DATA_ATTR bool switch3Status = false;
 /* Global Variables */
 QueueHandle_t eventQueue;
 
+Preferences preferences;
+float voltageOffset = -2.2; // Default voltage offset value (positive: subtract if measured high, negative: add if measured low)
+
 uint32_t pressStartTime = 0;
 uint32_t lastReleaseTime = 0;
 uint8_t clickCount = 0;
@@ -137,7 +141,8 @@ void measureBattery()
   digitalWrite(BATTERY_ENABLE_PIN, LOW);
 
   float adcAverage = adcSum / SAMPLE_COUNT;
-  float voltage = (adcAverage / 4095.0) * 3.3 * 4.0; // Apply divider ratio
+  float voltage = (adcAverage / 4095.0) * 3.3 * 4.0 + voltageOffset; // Apply divider ratio and calibration offset
+  if (voltage < 0) voltage = 0; // Prevent negative voltage
 
   if (voltage < MIN_VOLTAGE)
   {
@@ -713,6 +718,11 @@ void setup()
   Serial.begin(115200);
 
   LOG_PRINTLN("Zigbee IoT Button Starting...");
+
+  // Initialize NVS and load voltage offset
+  preferences.begin("iot_button", false);
+  voltageOffset = preferences.getFloat("voltage_offset", -2.2);
+  LOG_PRINTF("Loaded voltage offset: %.2f\n", voltageOffset);
 #if defined(IOT_BUTTON_V2)
   // Restore button state from RTC memory
   pressStartTime = pressStartTimeRTC;
@@ -766,6 +776,36 @@ void setup()
 #endif
 }
 
+/********************* Serial Command Handling **************************/
+void handleSerialCommand(String command)
+{
+  if (command.startsWith("set_offset "))
+  {
+    String valueStr = command.substring(11);
+    float newOffset = valueStr.toFloat();
+    voltageOffset = newOffset;
+    preferences.putFloat("voltage_offset", voltageOffset);
+    LOG_PRINTF("Voltage offset set to: %.2f\n", voltageOffset);
+  }
+  else if (command == "get_offset")
+  {
+    LOG_PRINTF("Current voltage offset: %.2f\n", voltageOffset);
+  }
+  else if (command == "help")
+  {
+    Serial.println("Available commands:");
+    Serial.println("  set_offset <value>  - Set voltage calibration offset (e.g., set_offset -0.22 if measured voltage is high)");
+    Serial.println("                        Positive value: subtract from measured voltage");
+    Serial.println("                        Negative value: add to measured voltage");
+    Serial.println("  get_offset          - Get current voltage offset");
+    Serial.println("  help                - Show this help");
+  }
+  else
+  {
+    Serial.println("Unknown command. Type 'help' for available commands.");
+  }
+}
+
 /********************* Arduino Loop **************************/
 void loop()
 {
@@ -797,5 +837,13 @@ void loop()
   else
   {
     vTaskDelay(1000 / portTICK_PERIOD_MS); // Keep loop running even if Zigbee fails
+  }
+
+  // Handle serial commands
+  if (Serial.available())
+  {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    handleSerialCommand(command);
   }
 }
