@@ -97,7 +97,7 @@ RTC_DATA_ATTR bool switch3Status = false;
 QueueHandle_t eventQueue;
 
 Preferences preferences;
-float voltageOffset = -2.2; // Default voltage offset value (positive: subtract if measured high, negative: add if measured low)
+float voltageOffset = -0.22; // Default voltage offset value (positive: subtract if measured high, negative: add if measured low)
 
 uint32_t pressStartTime = 0;
 uint32_t lastReleaseTime = 0;
