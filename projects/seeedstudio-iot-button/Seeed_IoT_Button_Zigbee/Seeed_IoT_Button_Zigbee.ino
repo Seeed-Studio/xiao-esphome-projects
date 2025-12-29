@@ -12,7 +12,7 @@
 #include <Preferences.h>
 
 // Software version
-#define VERSION "1.1"
+#define VERSION "1.2"
 
 // Logging macro switch
 #define ENABLE_LOGGING // Comment out to disable logging
@@ -97,7 +97,7 @@ RTC_DATA_ATTR bool switch3Status = false;
 QueueHandle_t eventQueue;
 
 Preferences preferences;
-float voltageOffset = -0.22; // Default voltage offset value (positive: subtract if measured high, negative: add if measured low)
+float voltageOffset = 0; // Default voltage offset value (positive: subtract if measured high, negative: add if measured low)
 
 uint32_t pressStartTime = 0;
 uint32_t lastReleaseTime = 0;
@@ -110,6 +110,7 @@ volatile bool isAwake = true;   // Tracks device awake/sleep state
 bool lastConnected = false;     // Track previous Zigbee connection state
 bool zigbeeInitialized = false; // Track Zigbee initialization status
 bool zigbeeConnected = false; // Track Zigbee connection status for battery sampling
+bool disableSleep = false; // Flag to disable automatic sleep
 
 #if defined(IOT_BUTTON_V2)
 // RTC variables for button state persistence
@@ -120,8 +121,9 @@ RTC_DATA_ATTR bool longPressTriggeredRTC = false;
 RTC_DATA_ATTR bool clickSequenceActiveRTC = false;
 RTC_DATA_ATTR float lastBatteryPercentageRTC = 100.0;
 
-float emaVoltage = 0.0;
 float batteryPercentage = 100.0;
+float emaVoltage = 0.0;
+
 #endif
 
 #if defined(IOT_BUTTON_V2)
@@ -168,20 +170,20 @@ void measureBattery()
     // Lookup table algorithm: precise mapping of lithium battery discharge curve
     float localBatteryPercentage;
     if (emaVoltage >= 4.15f) localBatteryPercentage = 100.0f;
-    else if (emaVoltage >= 4.0f) localBatteryPercentage = 90.0f + (emaVoltage - 4.0f) * 66.7f;
-    else if (emaVoltage >= 3.7f) localBatteryPercentage = 20.0f + (emaVoltage - 3.7f) * 233.3f;
-    else if (emaVoltage >= 3.5f) localBatteryPercentage = 5.0f + (emaVoltage - 3.5f) * 75.0f;
-    else if (emaVoltage >= 3.0f) localBatteryPercentage = (emaVoltage - 3.0f) * 10.0f;
+    else if (emaVoltage >= 4.0f) localBatteryPercentage = 96.3f + (emaVoltage - 4.0f) * 24.5f;
+    else if (emaVoltage >= 3.7f) localBatteryPercentage = 53.3f + (emaVoltage - 3.7f) * 143.5f;
+    else if (emaVoltage >= 3.5f) localBatteryPercentage = 6.1f + (emaVoltage - 3.5f) * 235.7f;
+    else if (emaVoltage >= 3.0f) localBatteryPercentage = (emaVoltage - 3.0f) * 12.3f;
     else localBatteryPercentage = 0.0f;
 
     // Clamp to 0-100 range
     localBatteryPercentage = constrain(localBatteryPercentage, 0.0f, 100.0f);
     
     // Anti-jitter logic: ensure numerical stability
-    if (localBatteryPercentage > lastBatteryPercentageRTC && (localBatteryPercentage - lastBatteryPercentageRTC) < 8.0f) {
-        batteryPercentage = lastBatteryPercentageRTC;
+    if (localBatteryPercentage > lastBatteryPercentageRTC && (localBatteryPercentage - lastBatteryPercentageRTC) < 5.0f) {
+    batteryPercentage = lastBatteryPercentageRTC;
     } else {
-    batteryPercentage = localBatteryPercentage;
+        batteryPercentage = localBatteryPercentage;
         lastBatteryPercentageRTC = batteryPercentage;
     }
 
@@ -607,7 +609,7 @@ void sleepTask(void *pvParameters)
   while (1)
   {
     uint32_t sleepTimeout = zigbeeConnected ? SLEEP_TIMEOUT_CONNECTED : SLEEP_TIMEOUT_DISCONNECTED;
-    if (isAwake && (millis() - lastActivityTime > sleepTimeout))
+    if (isAwake && !disableSleep && (millis() - lastActivityTime > sleepTimeout))
     {
       LOG_PRINTLN("Entering sleep due to inactivity");
 #if defined(IOT_BUTTON_V1)
@@ -721,7 +723,7 @@ void setup()
 
   // Initialize NVS and load voltage offset
   preferences.begin("iot_button", false);
-  voltageOffset = preferences.getFloat("voltage_offset", -2.2);
+  voltageOffset = preferences.getFloat("voltage_offset", 0);
   LOG_PRINTF("Loaded voltage offset: %.2f\n", voltageOffset);
 #if defined(IOT_BUTTON_V2)
   // Restore button state from RTC memory
@@ -791,6 +793,16 @@ void handleSerialCommand(String command)
   {
     LOG_PRINTF("Current voltage offset: %.2f\n", voltageOffset);
   }
+  else if (command == "disable_sleep")
+  {
+    disableSleep = true;
+    Serial.println("Automatic sleep disabled");
+  }
+  else if (command == "enable_sleep")
+  {
+    disableSleep = false;
+    Serial.println("Automatic sleep enabled");
+  }
   else if (command == "help")
   {
     Serial.println("Available commands:");
@@ -798,6 +810,8 @@ void handleSerialCommand(String command)
     Serial.println("                        Positive value: subtract from measured voltage");
     Serial.println("                        Negative value: add to measured voltage");
     Serial.println("  get_offset          - Get current voltage offset");
+    Serial.println("  disable_sleep       - Disable automatic sleep mode");
+    Serial.println("  enable_sleep        - Enable automatic sleep mode");
     Serial.println("  help                - Show this help");
   }
   else

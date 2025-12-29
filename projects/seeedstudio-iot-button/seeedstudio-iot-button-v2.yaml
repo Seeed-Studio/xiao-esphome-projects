@@ -151,10 +151,10 @@ sensor:
       // --- Lookup table algorithm: precise mapping of lithium battery discharge curve ---
       float pct;
       if (v >= 4.15f) pct = 100.0f;
-      else if (v >= 4.0f) pct = 90.0f + (v - 4.0f) * 66.7f;
-      else if (v >= 3.7f) pct = 20.0f + (v - 3.7f) * 233.3f;
-      else if (v >= 3.5f) pct = 5.0f + (v - 3.5f) * 75.0f;
-      else if (v >= 3.0f) pct = (v - 3.0f) * 10.0f;
+      else if (v >= 4.0f) pct = 90.0f + (v - 4.0f) * 24.5f;
+      else if (v >= 3.7f) pct = 20.0f + (v - 3.7f) * 143.5f;
+      else if (v >= 3.5f) pct = 5.0f + (v - 3.5f) * 235.7f;
+      else if (v >= 3.0f) pct = (v - 3.0f) * 12.3f;
       else pct = 0.0f;
 
       // --- Anti-jitter logic: ensure numerical stability ---
