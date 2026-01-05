@@ -1,0 +1,105 @@
+substitutions:
+  name: "seeed-6-channel-relay"
+  friendly_name: "Seeed Studio 6 Channel Relay"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: true
+  project:
+    name: "seeedstudio.6_channel_relay_for_xiao"
+    version: "0.1"
+  platformio_options:
+    board_upload.maxium_size: 4194304
+  min_version: "2024.3.2" # Fix logger compile error on ESP32-C6 esphome#6323
+  on_boot:
+    priority: 250
+    then:
+      - lambda: |-
+          ESP_LOGD("custom", "Custom component for external antenna initialization.");
+          gpio_reset_pin(GPIO_NUM_3);
+          gpio_set_direction(GPIO_NUM_3, GPIO_MODE_OUTPUT);
+          gpio_set_level(GPIO_NUM_3, 0); // Activate RF switch control
+          
+          vTaskDelay(pdMS_TO_TICKS(100));
+          
+          gpio_reset_pin(GPIO_NUM_14);
+          gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
+          gpio_set_level(GPIO_NUM_14, 1); // Use external antenna
+
+esp32:
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
+  flash_size: 4MB # upload.flash_size
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+  level: DEBUG  # Set log level to DEBUG, INFO, WARNING, ERROR, or CRITICAL
+  hardware_uart: USB_SERIAL_JTAG  
+
+# Enable Home Assistant API
+api:
+
+# Enable over-the-air updates
+ota:
+    - platform: esphome
+
+wifi:  
+  # Enable fallback hotspot (captive portal) in case Wi-Fi connection fails
+  ap:
+    ssid: "seeedstudio-6-channel-relay"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+i2c:
+  sda: GPIO22
+  scl: GPIO23
+  scan: true
+  id: bus_a
+
+# Define GPIO outputs for each relay
+output:
+  - platform: gpio
+    id: relay1
+    pin: GPIO2
+  - platform: gpio
+    id: relay2
+    pin: GPIO21
+  - platform: gpio
+    id: relay3
+    pin: GPIO1
+  - platform: gpio
+    id: relay4
+    pin: GPIO0
+  - platform: gpio
+    id: relay5
+    pin: GPIO19
+  - platform: gpio
+    id: relay6
+    pin: GPIO18
+
+# Define switches to control each relay
+switch:
+  - platform: output
+    name: "Relay 1"
+    output: relay1
+  - platform: output
+    name: "Relay 2"
+    output: relay2
+  - platform: output
+    name: "Relay 3"
+    output: relay3
+  - platform: output
+    name: "Relay 4"
+    output: relay4
+  - platform: output
+    name: "Relay 5"
+    output: relay5
+  - platform: output
+    name: "Relay 6"
+    output: relay6

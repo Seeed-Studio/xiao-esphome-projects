@@ -1,0 +1,125 @@
+substitutions:
+  name: "seeed-2_channel_relay"
+  friendly_name: "Seeed Studio 2 Channel Relay"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: true
+  project:
+    name: "seeedstudio.2_channel_relay_for_xiao"
+    version: "0.1"
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  level: DEBUG  # Set log level to DEBUG, INFO, WARNING, ERROR, or CRITICAL
+  baud_rate: 9600  # This is the serial output rate for logs
+
+# Enable Home Assistant API
+api:
+
+# Enable over-the-air updates
+ota:
+    - platform: esphome
+
+wifi:
+  # Enable fallback hotspot (captive portal) in case Wi-Fi connection fails
+  ap:
+    ssid: "seeedstudio-2-channel-relay"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+# Define UART connections for BL0942
+uart:
+  id: uart_bus
+  tx_pin: GPIO3
+  rx_pin: GPIO2
+  baud_rate: 4800
+  stop_bits: 1
+
+sensor:
+  - platform: bl0942
+    uart_id: uart_bus
+    voltage:
+      name: 'Socket Voltage'  # Name for displaying voltage readings
+    current:
+      name: 'Socket Current'  # Name for displaying current readings
+    power:
+      name: 'Socket Power'  # Name for displaying power readings
+      filters:
+        multiply: -1  # Invert the power reading (if needed)
+    energy:
+      name: 'Socket Energy'  # Name for displaying energy readings
+    frequency:
+      name: "Socket Frequency"  # Name for displaying frequency readings
+      accuracy_decimals: 2
+
+    update_interval: 60s  # Refresh interval for readings
+
+# Define GPIO outputs for the set and reset coils of the latching relay
+output:
+  - platform: gpio
+    id: relay1_set
+    pin: GPIO5
+  - platform: gpio
+    id: relay1_reset
+    pin: GPIO4
+  - platform: gpio
+    id: relay2_set
+    pin: GPIO7
+  - platform: gpio
+    id: relay2_reset
+    pin: GPIO6
+
+globals:
+  - id: relay1_state
+    type: boolean
+    restore_value: true
+    initial_value: "false"
+  - id: relay2_state
+    type: boolean
+    restore_value: true
+    initial_value: "false"
+
+# Define switches to control the set and reset of the relays
+switch:
+  - platform: template
+    name: "Relay 1 Control"  # Name for switch 1
+    id: relay1
+    lambda: return id(relay1_state);
+    turn_on_action:
+      - output.turn_on: relay1_set
+      - delay: 100ms
+      - output.turn_off: relay1_set
+      - lambda: |-
+          id(relay1_state) = true;
+    turn_off_action:
+      - output.turn_on: relay1_reset
+      - delay: 100ms
+      - output.turn_off: relay1_reset
+      - lambda: |-
+          id(relay1_state) = false;
+  - platform: template
+    name: "Relay 2 Control"  # Name for switch 2
+    id: relay2
+    lambda: return id(relay2_state);
+    turn_on_action:
+      - output.turn_on: relay2_set
+      - delay: 100ms
+      - output.turn_off: relay2_set
+      - lambda: |-
+          id(relay2_state) = true;
+    turn_off_action:
+      - output.turn_on: relay2_reset
+      - delay: 100ms
+      - output.turn_off: relay2_reset
+      - lambda: |-
+          id(relay2_state) = false;
