@@ -23,6 +23,8 @@ jobs:
         projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml
         projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave.yaml
         projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter.yaml
+        projects/seeedstudio-mr60bha2-kit/seeedstudio-mr60bha2-kit.yaml
+        projects/seeedstudio-mr60fda2-kit/seeedstudio-mr60fda2-kit.yaml
       esphome-version: stable
       release-summary: ${{ github.event.release.body }}
       release-url: ${{ github.event.release.html_url }}
@@ -58,7 +60,7 @@ jobs:
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v2
       - name: Cache Arduino cores and libraries
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.arduino15

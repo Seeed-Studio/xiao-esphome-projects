@@ -9,6 +9,10 @@
 #include <freertos/queue.h>
 #include <esp_sleep.h>
 #include "driver/rtc_io.h"
+#include <Preferences.h>
+
+// Software version
+#define VERSION "1.2"
 
 // Logging macro switch
 #define ENABLE_LOGGING // Comment out to disable logging
@@ -57,7 +61,8 @@ const uint32_t MULTI_CLICK_TIME = 300;             // Maximum time between click
 const uint32_t SHORT_LONG_PRESS_TIME = 1000;       // Minimum time for short long press (1 second)
 const uint32_t LONG_PRESS_TIME = 5000;             // Minimum time for long press (5 seconds)
 const uint32_t DEBOUNCE_TIME = 20;                 // Debounce time (ms)
-const uint32_t INACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes inactivity timeout (ms)
+const uint32_t SLEEP_TIMEOUT_DISCONNECTED = 2 * 60 * 1000; // 2 minutes when disconnected (for configuration) (ms)
+const uint32_t SLEEP_TIMEOUT_CONNECTED = 30 * 1000; // 30 seconds when connected (ms)
 
 /* LED Configuration */
 CRGB rgbs[NUM_RGBS];
@@ -91,6 +96,9 @@ RTC_DATA_ATTR bool switch3Status = false;
 /* Global Variables */
 QueueHandle_t eventQueue;
 
+Preferences preferences;
+float voltageOffset = 0; // Default voltage offset value (positive: subtract if measured high, negative: add if measured low)
+
 uint32_t pressStartTime = 0;
 uint32_t lastReleaseTime = 0;
 uint8_t clickCount = 0;
@@ -101,6 +109,8 @@ uint32_t lastActivityTime = 0;  // Tracks last button activity for sleep
 volatile bool isAwake = true;   // Tracks device awake/sleep state
 bool lastConnected = false;     // Track previous Zigbee connection state
 bool zigbeeInitialized = false; // Track Zigbee initialization status
+bool zigbeeConnected = false; // Track Zigbee connection status for battery sampling
+bool disableSleep = false; // Flag to disable automatic sleep
 
 #if defined(IOT_BUTTON_V2)
 // RTC variables for button state persistence
@@ -109,9 +119,11 @@ RTC_DATA_ATTR uint32_t lastReleaseTimeRTC = 0;
 RTC_DATA_ATTR uint8_t clickCountRTC = 0;
 RTC_DATA_ATTR bool longPressTriggeredRTC = false;
 RTC_DATA_ATTR bool clickSequenceActiveRTC = false;
+RTC_DATA_ATTR float lastBatteryPercentageRTC = 100.0;
 
-float emaVoltage = 0.0;
 float batteryPercentage = 100.0;
+float emaVoltage = 0.0;
+
 #endif
 
 #if defined(IOT_BUTTON_V2)
@@ -119,7 +131,7 @@ float batteryPercentage = 100.0;
 void measureBattery()
 {
   digitalWrite(BATTERY_ENABLE_PIN, HIGH);
-  vTaskDelay(10 / portTICK_PERIOD_MS); // Wait for stabilization
+  vTaskDelay(50 / portTICK_PERIOD_MS); // Increased delay for ADC stabilization and gate delay
 
   // Take multiple samples and compute average
   float adcSum = 0;
@@ -131,12 +143,14 @@ void measureBattery()
   digitalWrite(BATTERY_ENABLE_PIN, LOW);
 
   float adcAverage = adcSum / SAMPLE_COUNT;
-  float voltage = (adcAverage / 4095.0) * 3.3 * 3.0; // Apply divider ratio
+  float voltage = (adcAverage / 4095.0) * 3.3 * 4.0 + voltageOffset; // Apply divider ratio and calibration offset
+  if (voltage < 0) voltage = 0; // Prevent negative voltage
 
   if (voltage < MIN_VOLTAGE)
   {
     emaVoltage = 0.0;
     batteryPercentage = 0.0;
+    lastBatteryPercentageRTC = 0.0;
     LOG_PRINTF("Battery voltage: %.2fV (too low or not connected), EMA voltage: %.2fV, Percentage: %.2f%%\n",
                voltage, emaVoltage, batteryPercentage);
   }
@@ -153,17 +167,28 @@ void measureBattery()
     }
 
     // Calculate battery percentage from emaVoltage
-    float localBatteryPercentage = (emaVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE) * 100;
-    if (localBatteryPercentage < 0)
-      localBatteryPercentage = 0;
-    if (localBatteryPercentage > 100)
-      localBatteryPercentage = 100;
+    // Lookup table algorithm: precise mapping of lithium battery discharge curve
+    float localBatteryPercentage;
+    if (emaVoltage >= 4.15f) localBatteryPercentage = 100.0f;
+    else if (emaVoltage >= 4.0f) localBatteryPercentage = 96.3f + (emaVoltage - 4.0f) * 24.5f;
+    else if (emaVoltage >= 3.7f) localBatteryPercentage = 53.3f + (emaVoltage - 3.7f) * 143.5f;
+    else if (emaVoltage >= 3.5f) localBatteryPercentage = 6.1f + (emaVoltage - 3.5f) * 235.7f;
+    else if (emaVoltage >= 3.0f) localBatteryPercentage = (emaVoltage - 3.0f) * 12.3f;
+    else localBatteryPercentage = 0.0f;
 
-    // Update global battery percentage
-    batteryPercentage = localBatteryPercentage;
+    // Clamp to 0-100 range
+    localBatteryPercentage = constrain(localBatteryPercentage, 0.0f, 100.0f);
+    
+    // Anti-jitter logic: ensure numerical stability
+    if (localBatteryPercentage > lastBatteryPercentageRTC && (localBatteryPercentage - lastBatteryPercentageRTC) < 5.0f) {
+    batteryPercentage = lastBatteryPercentageRTC;
+    } else {
+        batteryPercentage = localBatteryPercentage;
+        lastBatteryPercentageRTC = batteryPercentage;
+    }
 
-    LOG_PRINTF("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%%\n",
-               voltage, emaVoltage, localBatteryPercentage);
+    LOG_PRINTF("Battery voltage: %.2fV, EMA voltage: %.2fV, Percentage: %.2f%% (stored: %.2f%%)\n",
+               voltage, emaVoltage, localBatteryPercentage, batteryPercentage);
   }
 }
 #endif
@@ -583,7 +608,8 @@ void sleepTask(void *pvParameters)
 {
   while (1)
   {
-    if (isAwake && (millis() - lastActivityTime > INACTIVITY_TIMEOUT))
+    uint32_t sleepTimeout = zigbeeConnected ? SLEEP_TIMEOUT_CONNECTED : SLEEP_TIMEOUT_DISCONNECTED;
+    if (isAwake && !disableSleep && (millis() - lastActivityTime > sleepTimeout))
     {
       LOG_PRINTLN("Entering sleep due to inactivity");
 #if defined(IOT_BUTTON_V1)
@@ -694,6 +720,11 @@ void setup()
   Serial.begin(115200);
 
   LOG_PRINTLN("Zigbee IoT Button Starting...");
+
+  // Initialize NVS and load voltage offset
+  preferences.begin("iot_button", false);
+  voltageOffset = preferences.getFloat("voltage_offset", 0);
+  LOG_PRINTF("Loaded voltage offset: %.2f\n", voltageOffset);
 #if defined(IOT_BUTTON_V2)
   // Restore button state from RTC memory
   pressStartTime = pressStartTimeRTC;
@@ -747,6 +778,48 @@ void setup()
 #endif
 }
 
+/********************* Serial Command Handling **************************/
+void handleSerialCommand(String command)
+{
+  if (command.startsWith("set_offset "))
+  {
+    String valueStr = command.substring(11);
+    float newOffset = valueStr.toFloat();
+    voltageOffset = newOffset;
+    preferences.putFloat("voltage_offset", voltageOffset);
+    LOG_PRINTF("Voltage offset set to: %.2f\n", voltageOffset);
+  }
+  else if (command == "get_offset")
+  {
+    LOG_PRINTF("Current voltage offset: %.2f\n", voltageOffset);
+  }
+  else if (command == "disable_sleep")
+  {
+    disableSleep = true;
+    Serial.println("Automatic sleep disabled");
+  }
+  else if (command == "enable_sleep")
+  {
+    disableSleep = false;
+    Serial.println("Automatic sleep enabled");
+  }
+  else if (command == "help")
+  {
+    Serial.println("Available commands:");
+    Serial.println("  set_offset <value>  - Set voltage calibration offset (e.g., set_offset -0.22 if measured voltage is high)");
+    Serial.println("                        Positive value: subtract from measured voltage");
+    Serial.println("                        Negative value: add to measured voltage");
+    Serial.println("  get_offset          - Get current voltage offset");
+    Serial.println("  disable_sleep       - Disable automatic sleep mode");
+    Serial.println("  enable_sleep        - Enable automatic sleep mode");
+    Serial.println("  help                - Show this help");
+  }
+  else
+  {
+    Serial.println("Unknown command. Type 'help' for available commands.");
+  }
+}
+
 /********************* Arduino Loop **************************/
 void loop()
 {
@@ -756,11 +829,13 @@ void loop()
     if (currentConnected && !lastConnected)
     {
       LOG_PRINTLN("Zigbee connected!");
+      zigbeeConnected = true;
       onZigbeeConnected();
     }
     else if (!currentConnected && lastConnected)
     {
       LOG_PRINTLN("Zigbee disconnected!");
+      zigbeeConnected = false;
     }
     lastConnected = currentConnected;
     if (!currentConnected)
@@ -776,5 +851,13 @@ void loop()
   else
   {
     vTaskDelay(1000 / portTICK_PERIOD_MS); // Keep loop running even if Zigbee fails
+  }
+
+  // Handle serial commands
+  if (Serial.available())
+  {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    handleSerialCommand(command);
   }
 }
