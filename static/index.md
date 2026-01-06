@@ -60,13 +60,13 @@ Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects u
 
 - **Description**: Dual-channel relay module based on XIAO ESP32-C3 for wireless control of AC appliances.
 - **Features**: Independent control of two loads, Wi-Fi connectivity, seamless Home Assistant integration.
-<esp-web-install-button manifest="firmware/seeedstudio-2-channel-relay.manifest.json"></esp-web-install-button>
+<esp-web-install-button manifest="firmware/seeed-2-channel-relay.manifest.json"></esp-web-install-button>
 
 ## Seeed Studio 6 Channel Relay base on XIAO ESP32-C6
 
 - **Description**: Six-channel relay module based on XIAO ESP32-C6 for wireless control of multiple AC appliances.
 - **Features**: Independent control of six loads, Wi-Fi connectivity, seamless Home Assistant integration.
-<esp-web-install-button manifest="firmware/seeedstudio-6-channel-relay.manifest.json"></esp-web-install-button>
+<esp-web-install-button manifest="firmware/seeed-6-channel-relay.manifest.json"></esp-web-install-button>
 
 ## Installation Notes
 

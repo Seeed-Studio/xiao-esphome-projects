@@ -1,5 +1,5 @@
 substitutions:
-  name: "seeed-2_channel_relay"
+  name: "seeed-2-channel-relay"
   friendly_name: "Seeed Studio 2 Channel Relay"
 
 esphome:
