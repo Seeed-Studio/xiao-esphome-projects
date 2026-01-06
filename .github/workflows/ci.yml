@@ -56,7 +56,7 @@ jobs:
           - file: projects/seeedstudio-mr60fda2-kit/seeedstudio-mr60fda2-kit
             esphome-version: stable
           - file: projects/xiao_smart_ir_mate/xiao_smart_ir_mate
-            esphome-version: dev
+            esphome-version: stable
           - file: projects/seeedstudio-2-channel-relay/seeedstudio-2-channel-relay
             esphome-version: stable
           - file: projects/seeedstudio-6-channel-relay/seeedstudio-6-channel-relay

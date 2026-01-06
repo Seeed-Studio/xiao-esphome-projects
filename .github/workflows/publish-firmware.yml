@@ -27,22 +27,23 @@ jobs:
         projects/seeedstudio-mr60fda2-kit/seeedstudio-mr60fda2-kit.yaml
         projects/seeedstudio-2-channel-relay/seeedstudio-2-channel-relay.yaml
         projects/seeedstudio-6-channel-relay/seeedstudio-6-channel-relay.yaml
+        projects/xiao_smart_ir_mate/xiao_smart_ir_mate.yaml
       esphome-version: stable
       release-summary: ${{ github.event.release.body }}
       release-url: ${{ github.event.release.html_url }}
       release-version: ${{ github.event.release.tag_name }}
 
-  # ESPHome dev version
-  build-firmware-dev:
-    name: Build ESPHome Firmware (Dev)
-    uses: esphome/workflows/.github/workflows/build.yml@2025.10.0
-    with:
-      files: |
-        projects/xiao_smart_ir_mate/xiao_smart_ir_mate.yaml
-      esphome-version: dev
-      release-summary: ${{ github.event.release.body }}
-      release-url: ${{ github.event.release.html_url }}
-      release-version: ${{ github.event.release.tag_name }}
+  # # ESPHome dev version
+  # build-firmware-dev:
+  #   name: Build ESPHome Firmware (Dev)
+  #   uses: esphome/workflows/.github/workflows/build.yml@2025.10.0
+  #   with:
+  #     files: |
+  #       projects/xiao_smart_ir_mate/xiao_smart_ir_mate.yaml
+  #     esphome-version: dev
+  #     release-summary: ${{ github.event.release.body }}
+  #     release-url: ${{ github.event.release.html_url }}
+  #     release-version: ${{ github.event.release.tag_name }}
 
   build-firmware-arduino:
     name: Build Zigbee Arduino Firmware
@@ -127,7 +128,7 @@ jobs:
     uses: esphome/workflows/.github/workflows/upload-to-gh-release.yml@2025.10.0
     needs:
       - build-firmware-stable
-      - build-firmware-dev
+      # - build-firmware-dev
       - build-firmware-arduino
     with:
       version: ${{ github.event.release.tag_name }}
