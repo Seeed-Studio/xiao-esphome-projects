@@ -1,4 +1,4 @@
-# 6-Channel Relay based on XIAO ESP32-C6
+# Seeed Studio 6-Channel Relay based on XIAO ESP32-C6
 
 ## Overview
 

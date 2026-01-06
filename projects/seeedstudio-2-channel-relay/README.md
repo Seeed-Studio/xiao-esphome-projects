@@ -1,4 +1,4 @@
-# 2-Channel Relay based on XIAO ESP32C3
+# Seeed Studio 2 Channel Relay base on XIAO ESP32-C3
 
 ## Overview
 
