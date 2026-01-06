@@ -25,6 +25,8 @@ jobs:
         projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter.yaml
         projects/seeedstudio-mr60bha2-kit/seeedstudio-mr60bha2-kit.yaml
         projects/seeedstudio-mr60fda2-kit/seeedstudio-mr60fda2-kit.yaml
+        projects/seeedstudio-2-channel-relay/seeedstudio-2-channel-relay.yaml
+        projects/seeedstudio-6-channel-relay/seeedstudio-6-channel-relay.yaml
       esphome-version: stable
       release-summary: ${{ github.event.release.body }}
       release-url: ${{ github.event.release.html_url }}

@@ -23,6 +23,8 @@ Welcome to the XIAO ESPHome Projects repository! This repository contains a coll
     - [Project 6: XIAO W5500 Ethernet Adapter](#project-6-xiao-w5500-ethernet-adapter)
     - [Project 7: Seeed Studio MR60BHA2 60GHz mmWave Vital Signs Sensor](#project-7-seeed-studio-mr60bha2-60ghz-mmwave-vital-signs-sensor)
     - [Project 8: Seeed Studio MR60FDA2 60GHz mmWave Fall Detection Sensor](#project-8-seeed-studio-mr60fda2-60ghz-mmwave-fall-detection-sensor)
+    - [Project 9: Seeed Studio 2 Channel Relay](#project-9-seeed-studio-2-channel-relay)
+    - [Project 10: Seeed Studio 6 Channel Relay](#project-10-seeed-studio-6-channel-relay)
   - [Installation](#installation)
     - [📱 Web Installer - One-Click Firmware Installation](#-web-installer---one-click-firmware-installation)
   - [Contributing](#contributing)
@@ -90,6 +92,15 @@ For details and usage, see [projects/seeedstudio-mr60bha2-kit/README.md](project
 MR60FDA2 is a 60GHz mmWave radar sensor kit (XIAO ESP32-C6 based) focused on fall detection and presence monitoring. It provides fall alerts, configurable install parameters (height/threshold/sensitivity), and Home Assistant integration via ESPHome.
 
 For details and usage, see [projects/seeedstudio-mr60fda2-kit/README.md](projects/seeedstudio-mr60fda2-kit/README.md).
+
+### Project 9: Seeed Studio 2 Channel Relay
+
+Seeed Studio 2 Channel Relay is a dual-channel relay module based on XIAO ESP32-C3, designed for controlling AC-powered appliances wirelessly. It supports independent control of two loads and integrates seamlessly with Home Assistant.
+
+### Project 10: Seeed Studio 6 Channel Relay
+
+Seeed Studio 6 Channel Relay is a six-channel relay module based on XIAO ESP32-C6, designed for controlling multiple AC-powered appliances wirelessly. It supports independent control of six loads and integrates seamlessly with Home Assistant.
+
 
 ## Installation
 
