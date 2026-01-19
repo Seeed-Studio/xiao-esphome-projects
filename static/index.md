@@ -2,55 +2,55 @@
 
 Welcome to XIAO ESPHome Projects! This page provides firmware for IoT projects using Seeed Studio XIAO boards and ESPHome. Install firmware directly to your device via browser using the buttons below.
 
-## XIAO 2 Channel Wi-Fi AC Energy Meter
+## XIAO 2 Channel Wi-Fi AC Energy Meter base on XIAO ESP32-C6
 
 - **Description**: Dual-channel electricity meter based on BL0939.
 - **Features**: High-precision measurement of current, voltage, and power.
 <esp-web-install-button manifest="firmware/wifi_ac_energy_meter.manifest.json"></esp-web-install-button>
 
-## XIAO Soil Moisture Monitor
+## XIAO Soil Moisture Monitor base on XIAO ESP32-C6
 
 - **Description**: Soil moisture monitor with three-color LED feedback.
 - **Features**: Supports manual calibration and energy-saving deep sleep, ideal for flower pots or planters.
 <esp-web-install-button manifest="firmware/xiao-soil-moisture.manifest.json"></esp-web-install-button>
 
-## Seeed Studio IoT Button
+## Seeed Studio IoT Button base on ESP32-C6
 
 - **Description**: Multifunctional IoT button supporting ESPHome (WiFi).
 - **Features**: Single, double, and long press actions; RGB LED feedback; light sleep after 2 minutes.
 <esp-web-install-button manifest="firmware/seeedstudio-iot-button.manifest.json"></esp-web-install-button> 
-## Seeed Studio IoT Button V2
+## Seeed Studio IoT Button V2 base on ESP32-C6
 
 - **Description**: Enhanced IoT button supporting ESPHome (WiFi) and Zigbee (Arduino).
 - **Features**: Single, double, and long press actions; RGB LED feedback; battery monitoring; red/blue LEDs; deep sleep after 2 minutes; Home Assistant or Zigbee integration.
 
 **ESPHome:** <esp-web-install-button manifest="firmware/seeedstudio-iotbutton-v2.manifest.json"></esp-web-install-button>  **Arduino Zigbee:** <esp-web-install-button manifest="firmware/Seeed_IoT_Button_Zigbee_V2.manifest.json"></esp-web-install-button>
 
-## XIAO Smart IR Mate
+## XIAO Smart IR Mate base on XIAO ESP32-C3
 
 - **Description**: Infrared remote control companion for smart home devices.
 - **Features**: Supports IR remote control, RGB LED feedback, vibration, and touch/button actions for smart home integration.
 <esp-web-install-button manifest="firmware/xiao-smart-ir-mate.manifest.json"></esp-web-install-button>
 
-## XIAO 24GHz mmWave
+## XIAO 24GHz mmWave base on XIAO ESP32-C6
 
 - **Description**: Presence detection and battery-powered operation using a 24GHz mmWave radar sensor with deep sleep support.
 - **Features**: Supports presence detection, deep sleep, and battery monitoring with a 24GHz mmWave radar sensor.
 <esp-web-install-button manifest="firmware/xiao-24ghz-mmwave.manifest.json"></esp-web-install-button>
 
-## Seeed Studio MR60BHA2 60GHz mmWave Sensor Kit
+## Seeed Studio MR60BHA2 60GHz mmWave Sensor Kit base on ESP32-C6
 
 - **Description**: 60GHz mmWave radar sensor kit for non-contact vital signs monitoring (presence, heart rate, respiratory rate).
 - **Features**: Presence detection, real-time heart rate & respiratory rate, distance measurement, target counting, Home Assistant integration.
 <esp-web-install-button manifest="firmware/seeedstudio-mr60bha2-kit.manifest.json"></esp-web-install-button>
 
-## Seeed Studio MR60FDA2 60GHz mmWave Sensor Kit
+## Seeed Studio MR60FDA2 60GHz mmWave Sensor Kit base on ESP32-C6
 
 - **Description**: 60GHz mmWave radar sensor kit for fall detection and presence monitoring.
 - **Features**: Fall detection alerts, configurable install parameters (height/threshold/sensitivity), Home Assistant integration.
 <esp-web-install-button manifest="firmware/seeedstudio-mr60fda2-kit.manifest.json"></esp-web-install-button>
 
-## XIAO W5500 Ethernet Adapter V1.2
+## XIAO W5500 Ethernet Adapter V1.2 base on XIAO ESP32-S3 Plus
 
 - **Description**: Bluetooth proxy device based on W5500.
 - **Features**: Wide-range Bluetooth device detection with POE power supply support.
