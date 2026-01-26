@@ -1,9 +1,3 @@
-# Note !!!!!:
-# If you are using the ESPHome Device Builder in Home Assistant
-# make sure to download the ESPHome Device Builder (dev) version
-# otherwise, you will not be able to compile this project.
-
-
 substitutions:
   name: "xiao-smart-ir-mate"
   friendly_name: "XIAO Smart IR Mate"
@@ -73,7 +67,7 @@ wifi:
         value: 'true'
     - light.turn_on: rgb_light
     - lambda: |-
-        ESP_LOGI("ir", "IP address: %s", WiFi.localIP().toString().c_str());
+        ESP_LOGI("ir", "IP address: %s", ::esphome::wifi::global_wifi_component->wifi_sta_ip_addresses()[0].str().c_str());
 
   on_disconnect:
     - globals.set:
