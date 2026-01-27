@@ -8,6 +8,7 @@ on:
       - 'fonts/**'
       - 'README.md'
       - 'LICENSE'
+      - ' .github/workflows/sync-yaml-to-wiki.yml'
   pull_request:
     paths-ignore:
       - 'docs/**'

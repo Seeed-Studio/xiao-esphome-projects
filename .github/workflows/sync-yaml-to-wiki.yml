@@ -1,0 +1,311 @@
+name: Sync YAML to Wiki
+
+on:
+  # Trigger after CI workflow succeeds
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    # Note: branches filter removed to support testing branches
+    # Branch filtering is done in the job condition using SOURCE_BASE_BRANCH
+
+  # Manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      head_sha:
+        description: 'Commit SHA to sync (default: latest main)'
+        required: false
+        type: string
+      dry_run:
+        description: 'Dry run mode (no PR created)'
+        required: false
+        type: boolean
+        default: true
+
+# Environment variables for easy configuration
+env:
+  WIKI_REPO: 'StarSphere-1024/wiki-documents'  # Change to 'Seeed-Studio/wiki-documents' for production
+  WIKI_BASE_BRANCH: 'sync-yaml'  # Test branch with anchors, change to 'main' for production
+  SOURCE_BASE_BRANCH: 'sync-to-wiki'  # Source repo branch to sync from, change for testing
+  SYNC_BRANCH_PREFIX: 'sync-yaml/'
+  REVIEWER: ''  # Leave empty for testing, set to 'limengdu' for production
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  detect-changes:
+    name: Detect YAML Changes
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       (github.event.workflow_run.head_branch == 'main' ||
+        github.event.workflow_run.head_branch == 'sync-to-wiki'))
+    outputs:
+      changed-files: ${{ steps.changes.outputs.changed-files }}
+      has-changes: ${{ steps.changes.outputs.has-changes }}
+      head-sha: ${{ steps.resolve-sha.outputs.head-sha }}
+    steps:
+      - name: Resolve commit SHA
+        id: resolve-sha
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            SHA="${{ github.event.inputs.head_sha }}"
+            if [ -z "$SHA" ]; then
+              SHA=$(git ls-remote https://github.com/${{ github.repository }}.git refs/heads/main | awk '{print $1}')
+            fi
+          else
+            SHA="${{ github.event.workflow_run.head_sha }}"
+          fi
+          echo "head-sha=$SHA" >> $GITHUB_OUTPUT
+          echo "Resolved SHA: $SHA"
+
+      - name: Checkout source repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.resolve-sha.outputs.head-sha }}
+          path: source-repo
+
+      - name: Checkout wiki repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.WIKI_REPO }}
+          path: wiki-repo
+          token: ${{ secrets.SYNC_TEST_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Copy scripts
+        run: |
+          cp source-repo/.github/scripts/detect-changes.py ./
+          cp source-repo/.github/scripts/sync-yaml.py ./
+
+      - name: Detect content changes
+        id: changes
+        run: |
+          python detect-changes.py \
+            --mapping .github/sync-mapping.json \
+            --source source-repo \
+            --wiki wiki-target
+
+  sync-to-wiki:
+    name: Sync to Wiki Repository
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.detect-changes.outputs.head-sha }}
+          path: source-repo
+
+      - name: Checkout wiki repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.WIKI_REPO }}
+          path: wiki-target
+          token: ${{ secrets.SYNC_TEST_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Copy scripts
+        run: |
+          cp source-repo/.github/scripts/sync-yaml.py ./
+
+      - name: Run sync script
+        id: sync
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TEST_TOKEN }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          CMD="python sync-yaml.py \
+            --mapping .github/sync-mapping.json \
+            --source source-repo \
+            --target wiki-target \
+            --changed-files '${{ needs.detect-changes.outputs.changed-files }}' \
+            --output changes.json"
+          
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ] || [ "$DRY_RUN" == "true" ]; then
+            CMD="$CMD --dry-run"
+          fi
+          
+          eval $CMD
+
+      - name: Check for existing PR
+        id: check-pr
+        if: env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TEST_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ env.SYNC_BRANCH_PREFIX }}${{ needs.detect-changes.outputs.head-sha }}"
+          PR_EXISTS=$(gh pr list \
+            --repo ${{ env.WIKI_REPO }} \
+            --head "$BRANCH_NAME" \
+            --json number \
+            --jq '. | length')
+          echo "exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+          echo "PR exists: $PR_EXISTS"
+
+      - name: Create or update branch
+        id: branch
+        if: env.DRY_RUN != 'true'
+        run: |
+          cd wiki-target
+          BRANCH_NAME="${{ env.SYNC_BRANCH_PREFIX }}${{ needs.detect-changes.outputs.head-sha }}"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if remote branch exists
+          if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
+            echo "Branch exists, resetting..."
+            git checkout "$BRANCH_NAME"
+            git reset --hard origin/${{ env.WIKI_BASE_BRANCH }}
+          else
+            echo "Creating new branch..."
+            git checkout -b "$BRANCH_NAME" origin/${{ env.WIKI_BASE_BRANCH }}
+          fi
+
+          # Copy changed files from sync output
+          if [ -f "../changes.json" ]; then
+            python3 << 'EOF'
+          import json
+          import os
+          import shutil
+
+          with open('../changes.json', 'r') as f:
+              changes = json.load(f)
+
+          for item in changes.get('updated_files', []):
+              src = os.path.join('..', item['temp_path'])
+              dst = item['target_path']
+              os.makedirs(os.path.dirname(dst), exist_ok=True)
+              shutil.copy2(src, dst)
+              print(f"Copied: {dst}")
+          EOF
+          fi
+
+          # Commit and push
+          git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "docs: sync ESPHome YAML configs from xiao-esphome-projects
+
+          Sync from commit: ${{ needs.detect-changes.outputs.head-sha }}"
+            git push -f origin "$BRANCH_NAME"
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create or update PR
+        if: steps.branch.outputs.has-changes == 'true' && env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TEST_TOKEN }}
+        run: |
+          if [ "${{ steps.check-pr.outputs.exists }}" == "1" ]; then
+            echo "PR already exists, updated via force push"
+          else
+            # Generate PR body
+            PR_BODY=$(python3 << 'EOF'
+          import json
+
+          with open('changes.json', 'r') as f:
+              changes = json.load(f)
+
+          body = """## Changes
+
+          This PR synchronizes ESPHome YAML configurations from the xiao-esphome-projects repository.
+
+          ### Updated Configurations
+          """
+
+          for config in changes.get('updated_configs', []):
+              body += f"- [{config}]({config})\n"
+
+          body += "\n### Files Changed\n"
+          for f in changes.get('updated_files', []):
+              body += f"- {f['target_path']}\n"
+
+          body += """
+          ### Validation
+          - All YAML configurations validated by CI in source repository
+          - Code blocks updated automatically from source
+
+          ### Reviewers
+          @limengdu - Please review the configuration updates
+          """
+
+          print(body.strip())
+          EOF
+            )
+
+            gh pr create \
+              --repo ${{ env.WIKI_REPO }} \
+              --title "docs: sync ESPHome YAML configs from xiao-esphome-projects" \
+              --body "$PR_BODY" \
+              --base ${{ env.WIKI_BASE_BRANCH }} \
+              --head ${{ steps.branch.outputs.branch }} \
+              --reviewer ${{ env.REVIEWER }} \
+              --label documentation,sync,esphome,needs-review
+
+            echo "PR created successfully"
+          fi
+
+      - name: Upload changes as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-changes
+          path: changes.json
+
+      - name: Workflow summary
+        run: |
+          if [ -f changes.json ]; then
+            echo "### Sync Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            python3 << 'EOF'
+          import json
+
+          with open('changes.json', 'r') as f:
+              changes = json.load(f)
+
+          print(f"**Head SHA:** ${'{{ needs.detect-changes.outputs.head-sha }}'}")
+          print(f"**Wiki Repo:** ${{ env.WIKI_REPO }}")
+          print(f"**Dry Run:** ${{ env.DRY_RUN }}")
+          print("")
+
+          if changes.get('updated_configs'):
+              print("**Updated Configurations:**")
+              for config in changes['updated_configs']:
+                  print(f"  - {config}")
+              print("")
+
+          if changes.get('updated_files'):
+              print("**Updated Files:**")
+              for f in changes['updated_files']:
+                  print(f"  - {f['target_path']}")
+              print("")
+
+          if changes.get('missing_anchors'):
+              print("**Missing Anchors:**")
+              for anchor in changes['missing_anchors']:
+                  print(f"  - {anchor}")
+              print("")
+
+          if changes.get('skipped_files'):
+              print("**Skipped Files (not in whitelist):**")
+              for f in changes['skipped_files']:
+                  print(f"  - {f}")
+              print("")
+          EOF
+          fi
