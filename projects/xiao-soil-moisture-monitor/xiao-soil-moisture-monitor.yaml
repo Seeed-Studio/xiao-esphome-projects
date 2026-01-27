@@ -1,3 +1,4 @@
+# ==== AUTO-SYNC START: xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml ====
 substitutions:
   name: "xiao-soil-moisture"
   friendly_name: "XIAO Soil Moisture Monitor"
@@ -440,4 +441,4 @@ wifi:
     ssid: "XIAO-Soil-Moisture-Monitor"
 
 captive_portal:
-    
+# ==== AUTO-SYNC END ====

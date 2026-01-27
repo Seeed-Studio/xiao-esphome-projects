@@ -8,6 +8,15 @@ on:
       - 'fonts/**'
       - 'README.md'
       - 'LICENSE'
+      # Do not trigger CI when only tweaking non-CI workflows or sync scripts.
+      # (CI itself is defined in this file, so keep it triggerable.)
+      - '.github/workflows/sync-yaml-to-wiki.yml'
+      - '.github/workflows/publish-firmware.yml'
+      - '.github/workflows/publish-pages.yml'
+      - '.github/workflows/stale.yml'
+      - '.github/workflows/sync_issues.yml'
+      - '.github/workflows/log/**'
+      - '.github/scripts/**'
   pull_request:
     paths-ignore:
       - 'docs/**'
@@ -15,6 +24,14 @@ on:
       - 'fonts/**'
       - 'README.md'
       - 'LICENSE'
+      # Same ignore rules as push for easier workflow/script iteration.
+      - '.github/workflows/sync-yaml-to-wiki.yml'
+      - '.github/workflows/publish-firmware.yml'
+      - '.github/workflows/publish-pages.yml'
+      - '.github/workflows/stale.yml'
+      - '.github/workflows/sync_issues.yml'
+      - '.github/workflows/log/**'
+      - '.github/scripts/**'
   repository_dispatch:
     types: [trigger-workflow]
   schedule:
