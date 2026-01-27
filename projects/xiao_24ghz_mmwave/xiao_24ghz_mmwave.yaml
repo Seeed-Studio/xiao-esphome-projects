@@ -1,3 +1,4 @@
+# ==== AUTO-SYNC START: xiao_24ghz_mmwave/xiao_24ghz_mmwave.yaml ====
 substitutions:
   name: "xiao-24ghz-mmwave"
   friendly_name: "XIAO 24GHz mmwave"
@@ -112,3 +113,5 @@ switch:
   - platform: output
     id: ADC_switch
     output: ADC_output
+# ==== AUTO-SYNC END ====
+

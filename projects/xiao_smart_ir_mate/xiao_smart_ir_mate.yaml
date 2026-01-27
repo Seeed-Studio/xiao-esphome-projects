@@ -1,3 +1,4 @@
+# ==== AUTO-SYNC START: xiao_smart_ir_mate/xiao_smart_ir_mate.yaml ====
 substitutions:
   name: "xiao-smart-ir-mate"
   friendly_name: "XIAO Smart IR Mate"
@@ -331,3 +332,4 @@ interval:
             }
             state = !state;
           }
+# ==== AUTO-SYNC END ====
