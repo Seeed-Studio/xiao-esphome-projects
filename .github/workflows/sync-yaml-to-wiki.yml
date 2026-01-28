@@ -71,6 +71,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: ${{ env.WIKI_REPO }}
+          ref: ${{ env.WIKI_BASE_BRANCH }}
           path: wiki-repo
           token: ${{ secrets.SYNC_TEST_TOKEN }}
 
@@ -108,8 +109,10 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: ${{ env.WIKI_REPO }}
+          ref: ${{ env.WIKI_BASE_BRANCH }}
           path: wiki-target
           token: ${{ secrets.SYNC_TEST_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -127,7 +130,7 @@ jobs:
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
         run: |
           CMD="python sync-yaml.py \
-            --mapping .github/sync-mapping.json \
+            --mapping source-repo/.github/sync-mapping.json \
             --source source-repo \
             --target wiki-target \
             --changed-files '${{ needs.detect-changes.outputs.changed-files }}' \

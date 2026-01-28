@@ -40,7 +40,7 @@ def read_yaml_file(yaml_path: str) -> Optional[str]:
     
     # Find the anchor markers
     start_marker_pattern = re.compile(rf'{re.escape(ANCHOR_START)} (.+?) ====', re.MULTILINE)
-    end_marker = ANCHOR_END + ' ===='
+    end_marker = ANCHOR_END
     
     start_match = start_marker_pattern.search(content)
     if not start_match:
@@ -70,19 +70,20 @@ def find_yaml_block_with_anchor(
     yaml_key: str
 ) -> Tuple[int, int, int, int]:
     """
-    Find the YAML code block containing the anchor markers.
+    Find the code block containing the anchor markers.
 
     Returns:
         tuple: (code_block_start, code_block_end, content_start, content_end) or (-1, -1, -1, -1)
-        - code_block_start: position of ```yaml
+        - code_block_start: position of opening ```
         - code_block_end: position of closing ```
         - content_start: position after the START marker line
         - content_end: position before the END marker line
     """
     start_marker = f"{ANCHOR_START} {yaml_key} ===="
 
-    # Find all YAML code blocks
-    yaml_block_pattern = r'```yaml\n(.*?)\n```'
+    # Find all code blocks (with optional language specifier and attributes)
+    # Pattern matches: ```[lang] [attributes]\n...\n```
+    yaml_block_pattern = r'```[a-zA-Z0-9_:-][^\n]*\n(.*?)\n```'
     for match in re.finditer(yaml_block_pattern, content, re.DOTALL):
         block_start = match.start()
         block_end = match.end()
@@ -104,9 +105,13 @@ def find_yaml_block_with_anchor(
             if end_marker_pos == -1:
                 return (-1, -1, -1, -1)
 
+            # Calculate the header length (```yaml\n or ```\n)
+            header_end = content.find('\n', block_start)
+            header_length = header_end - block_start + 1  # +1 for the \n
+
             # Calculate absolute positions
-            abs_content_start = block_start + 7 + start_line_end + 1  # 7 = len(```yaml\n`)
-            abs_content_end = block_start + 7 + end_marker_pos
+            abs_content_start = block_start + header_length + start_line_end + 1  # +1 to skip the \n after start marker line
+            abs_content_end = block_start + header_length + end_marker_pos
 
             return (block_start, block_end, abs_content_start, abs_content_end)
 
@@ -233,8 +238,9 @@ def main():
         changed_files = list(mapping.keys())
 
     # Filter to only files in mapping (whitelist mode)
-    valid_changed_files = [f for f in changed_files if f in mapping]
-    skipped_files = [f for f in changed_files if f not in mapping]
+    # Exclude metadata keys starting with '_'
+    valid_changed_files = [f for f in changed_files if f in mapping and not f.startswith('_')]
+    skipped_files = [f for f in changed_files if f not in mapping or f.startswith('_')]
 
     # Prepare result tracking
     result = {
