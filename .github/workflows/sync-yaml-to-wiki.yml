@@ -258,7 +258,7 @@ jobs:
               --base ${{ env.WIKI_BASE_BRANCH }} \
               --head ${{ steps.branch.outputs.branch }} \
               --reviewer ${{ env.REVIEWER }} \
-              --label documentation,sync,esphome,needs-review
+              --label "documentation,sync,esphome,needs-review"
 
             echo "PR created successfully"
           fi
