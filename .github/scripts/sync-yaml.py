@@ -81,9 +81,8 @@ def find_yaml_block_with_anchor(
     """
     start_marker = f"{ANCHOR_START} {yaml_key} ===="
 
-    # Find all code blocks (with optional language specifier and attributes)
-    # Pattern matches: ```[lang] [attributes]\n...\n```
-    yaml_block_pattern = r'```[a-zA-Z0-9_:-][^\n]*\n(.*?)\n```'
+    # Find all code blocks (with optional language specifier)
+    yaml_block_pattern = r'```[^\n]*\n(.*?)\n```'
     for match in re.finditer(yaml_block_pattern, content, re.DOTALL):
         block_start = match.start()
         block_end = match.end()
