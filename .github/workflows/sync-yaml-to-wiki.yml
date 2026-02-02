@@ -244,14 +244,25 @@ jobs:
           EOF
             )
 
-            gh pr create \
-              --repo ${{ env.WIKI_REPO }} \
-              --title "docs: sync ESPHome YAML configs from xiao-esphome-projects" \
-              --body "$PR_BODY" \
-              --base ${{ env.WIKI_BASE_BRANCH }} \
-              --head ${{ steps.branch.outputs.branch }} \
-              --reviewer ${{ env.REVIEWER }} \
-              --label "documentation,sync,esphome,needs-review"
+            REVIEWER="${{ env.REVIEWER }}"
+
+            PR_ARGS=(
+              --repo "${{ env.WIKI_REPO }}"
+              --title "docs: sync ESPHome YAML configs from xiao-esphome-projects"
+              --body "$PR_BODY"
+              --base "${{ env.WIKI_BASE_BRANCH }}"
+              --head "${{ steps.branch.outputs.branch }}"
+              --label "documentation"
+              --label "sync"
+              --label "esphome"
+              --label "needs-review"
+            )
+
+            if [ -n "$REVIEWER" ]; then
+              PR_ARGS+=(--reviewer "$REVIEWER")
+            fi
+
+            gh pr create "${PR_ARGS[@]}"
 
             echo "PR created successfully"
           fi
