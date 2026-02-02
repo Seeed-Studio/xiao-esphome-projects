@@ -28,6 +28,9 @@ env:
   SOURCE_BASE_BRANCH: 'main'  # Source repo branch to sync from, change for testing
   SYNC_BRANCH_PREFIX: 'sync-yaml-'
   REVIEWER: ''  # Leave empty for testing, set to 'limengdu' for production
+  # NOTE: must be defined at workflow/job env level so step-level `if: env.DRY_RUN` works.
+  # For workflow_run, inputs.* is unset; this expression safely falls back to 'false'.
+  DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run) || 'false' }}
 
 permissions:
   contents: read
@@ -38,8 +41,9 @@ jobs:
     name: Detect YAML Changes
     runs-on: ubuntu-latest
     if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main'
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
     outputs:
       changed-files: ${{ steps.changes.outputs.changed-files }}
       has-changes: ${{ steps.changes.outputs.has-changes }}
@@ -87,9 +91,9 @@ jobs:
         id: changes
         run: |
           python detect-changes.py \
-            --mapping .github/sync-mapping.json \
+            --mapping source-repo/.github/sync-mapping.json \
             --source source-repo \
-            --wiki wiki-target
+            --wiki wiki-repo
 
   sync-to-wiki:
     name: Sync to Wiki Repository
@@ -125,20 +129,23 @@ jobs:
         id: sync
         env:
           GH_TOKEN: ${{ secrets.SYNC_TEST_TOKEN }}
-          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
         run: |
-          CMD="python sync-yaml.py \
-            --mapping source-repo/.github/sync-mapping.json \
-            --source source-repo \
-            --target wiki-target \
-            --changed-files '${{ needs.detect-changes.outputs.changed-files }}' \
-            --output changes.json"
-          
-          if [ "${{ github.event.inputs.dry_run }}" == "true" ] || [ "$DRY_RUN" == "true" ]; then
-            CMD="$CMD --dry-run"
+          if [ "${{ env.DRY_RUN }}" == "true" ]; then
+            python sync-yaml.py \
+              --mapping source-repo/.github/sync-mapping.json \
+              --source source-repo \
+              --target wiki-target \
+              --changed-files '${{ needs.detect-changes.outputs.changed-files }}' \
+              --output changes.json \
+              --dry-run
+          else
+            python sync-yaml.py \
+              --mapping source-repo/.github/sync-mapping.json \
+              --source source-repo \
+              --target wiki-target \
+              --changed-files '${{ needs.detect-changes.outputs.changed-files }}' \
+              --output changes.json
           fi
-          
-          eval $CMD
 
       - name: Create or update branch
         id: branch
@@ -147,20 +154,18 @@ jobs:
           cd wiki-target
           BRANCH_NAME="${{ env.SYNC_BRANCH_PREFIX }}${{ needs.detect-changes.outputs.head-sha }}"
 
+          # Remove temp files created by sync script to avoid checkout conflicts
+          rm -rf .sync-temp
+
           # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Check if remote branch exists
-          if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
-            echo "Branch exists, resetting..."
-            git clean -fd  # Remove untracked files
-            git checkout "$BRANCH_NAME"
-            git reset --hard origin/${{ env.WIKI_BASE_BRANCH }}
-          else
-            echo "Creating new branch..."
-            git checkout -b "$BRANCH_NAME" origin/${{ env.WIKI_BASE_BRANCH }}
-          fi
+          # Always (re)create the local branch from the base branch.
+          # This avoids failures when the remote branch exists but wasn't fetched locally.
+          echo "Preparing branch $BRANCH_NAME from origin/${{ env.WIKI_BASE_BRANCH }}"
+          git fetch origin "${{ env.WIKI_BASE_BRANCH }}" --depth=1
+          git checkout -B "$BRANCH_NAME" "origin/${{ env.WIKI_BASE_BRANCH }}"
 
           # Copy changed files from sync output
           if [ -f "../changes.json" ]; then
@@ -182,6 +187,7 @@ jobs:
           fi
 
           # Commit and push
+          rm -rf .sync-temp
           git add .
           if git diff --cached --quiet; then
             echo "No changes to commit"
@@ -213,6 +219,7 @@ jobs:
             # Generate PR body
             PR_BODY=$(python3 << 'EOF'
           import json
+          import os
 
           with open('changes.json', 'r') as f:
               changes = json.load(f)
@@ -231,14 +238,15 @@ jobs:
           for f in changes.get('updated_files', []):
               body += f"- {f['target_path']}\n"
 
-          body += """
+          body += """\
           ### Validation
           - All YAML configurations validated by CI in source repository
           - Code blocks updated automatically from source
-
-          ### Reviewers
-          @limengdu - Please review the configuration updates
           """
+
+          reviewer = (os.environ.get('REVIEWER') or '').strip().lstrip('@')
+          if reviewer:
+              body += f"\n\n### Reviewers\n@{reviewer} - Please review the configuration updates\n"
 
           print(body.strip())
           EOF
