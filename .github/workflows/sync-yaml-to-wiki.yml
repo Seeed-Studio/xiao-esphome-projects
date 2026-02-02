@@ -140,21 +140,6 @@ jobs:
           
           eval $CMD
 
-      - name: Check for existing PR
-        id: check-pr
-        if: env.DRY_RUN != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.SYNC_TEST_TOKEN }}
-        run: |
-          BRANCH_NAME="${{ env.SYNC_BRANCH_PREFIX }}${{ needs.detect-changes.outputs.head-sha }}"
-          PR_EXISTS=$(gh pr list \
-            --repo ${{ env.WIKI_REPO }} \
-            --head "$BRANCH_NAME" \
-            --json number \
-            --jq '. | length')
-          echo "exists=$PR_EXISTS" >> $GITHUB_OUTPUT
-          echo "PR exists: $PR_EXISTS"
-
       - name: Create or update branch
         id: branch
         if: env.DRY_RUN != 'true'
@@ -215,7 +200,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SYNC_TEST_TOKEN }}
         run: |
-          if [ "${{ steps.check-pr.outputs.exists }}" == "1" ]; then
+          BRANCH_NAME="${{ steps.branch.outputs.branch }}"
+          PR_EXISTS=$(gh pr list \
+            --repo ${{ env.WIKI_REPO }} \
+            --head "$BRANCH_NAME" \
+            --json number \
+            --jq '. | length')
+          
+          if [ "$PR_EXISTS" == "1" ]; then
             echo "PR already exists, updated via force push"
           else
             # Generate PR body
