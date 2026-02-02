@@ -169,6 +169,7 @@ jobs:
           # Check if remote branch exists
           if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
             echo "Branch exists, resetting..."
+            git clean -fd  # Remove untracked files
             git checkout "$BRANCH_NAME"
             git reset --hard origin/${{ env.WIKI_BASE_BRANCH }}
           else
