@@ -14,18 +14,6 @@
       {
         "path": "docs/Sensor/SeeedStudio_XIAO_Gadgets/xiao_w5500_ethernet_adapter/esphome_with_xiao_w5500_ethernet_adapter.md",
         "yaml_key": "xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter.yaml"
-      },
-      {
-        "path": "docs/zh-CN/Sensor/SeeedStudio_XIAO_Gadgets/xiao_w5500_ethernet_adapter/cn_esphome_with_xiao_w5500_ethernet_adapter.md",
-        "yaml_key": "xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter.yaml"
-      },
-      {
-        "path": "docs/ja/Sensor/SeeedStudio_XIAO_Gadgets/xiao_w5500_ethernet_adapter/ja_esphome_with_xiao_w5500_ethernet_adapter.md",
-        "yaml_key": "xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter.yaml"
-      },
-      {
-        "path": "docs/es/Sensor/SeeedStudio_XIAO_Gadgets/xiao_w5500_ethernet_adapter/es_esphome_with_xiao_w5500_ethernet_adapter.md",
-        "yaml_key": "xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter.yaml"
       }
     ]
   },
@@ -34,18 +22,6 @@
       {
         "path": "docs/Sensor/SeeedStudio_XIAO_Gadgets/XIAO_Soil_Moisture_Sensor.md",
         "yaml_key": "xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml"
-      },
-      {
-        "path": "docs/zh-CN/Sensor/SeeedStudio_XIAO_Gadgets/cn_XIAO_Soil_Moisture_Sensor.md",
-        "yaml_key": "xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml"
-      },
-      {
-        "path": "docs/ja/Sensor/SeeedStudio_XIAO_Gadgets/ja_XIAO_Soil_Moisture_Sensor.md",
-        "yaml_key": "xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml"
-      },
-      {
-        "path": "docs/es/Sensor/SeeedStudio_XIAO_Gadgets/es_XIAO_Soil_Moisture_Sensor.md",
-        "yaml_key": "xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml"
       }
     ]
   },
@@ -53,18 +29,6 @@
     "targets": [
       {
         "path": "docs/Sensor/SeeedStudio_XIAO_Gadgets/XIAO_IR_MATE.md",
-        "yaml_key": "xiao_smart_ir_mate/xiao_smart_ir_mate.yaml"
-      },
-      {
-        "path": "docs/zh-CN/Sensor/SeeedStudio_XIAO_Gadgets/cn_XIAO_IR_MATE.md",
-        "yaml_key": "xiao_smart_ir_mate/xiao_smart_ir_mate.yaml"
-      },
-      {
-        "path": "docs/ja/Sensor/SeeedStudio_XIAO_Gadgets/ja_XIAO_IR_MATE.md",
-        "yaml_key": "xiao_smart_ir_mate/xiao_smart_ir_mate.yaml"
-      },
-      {
-        "path": "docs/es/Sensor/SeeedStudio_XIAO_Gadgets/es_XIAO_IR_MATE.md",
         "yaml_key": "xiao_smart_ir_mate/xiao_smart_ir_mate.yaml"
       }
     ]
