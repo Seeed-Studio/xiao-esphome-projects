@@ -20,6 +20,12 @@ ANCHOR_START = "# ==== AUTO-SYNC START:"
 ANCHOR_END = "# ==== AUTO-SYNC END ===="
 
 
+def normalize_lines(text: str) -> str:
+    """Normalize line endings and strip trailing whitespace on each line."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    return "\n".join(line.rstrip() for line in text.split("\n"))
+
+
 def load_mapping(mapping_path: str) -> Dict[str, Any]:
     """Load the sync mapping configuration."""
     with open(mapping_path, 'r', encoding='utf-8') as f:
@@ -52,7 +58,7 @@ def read_yaml_file(yaml_path: str) -> Optional[str]:
         return None  # Incomplete anchors, skip
     
     # Extract content between anchors
-    anchored_content = content[start_pos:end_pos].strip()
+    anchored_content = normalize_lines(content[start_pos:end_pos]).strip()
     
     # Remove any remaining anchor lines within the content (defensive)
     anchored_lines = anchored_content.split('\n')
@@ -62,7 +68,7 @@ def read_yaml_file(yaml_path: str) -> Optional[str]:
            not line.strip().startswith(ANCHOR_END)
     ]
     
-    return '\n'.join(filtered_lines).strip()
+    return normalize_lines('\n'.join(filtered_lines)).strip()
 
 
 def find_yaml_block_with_anchor(
@@ -137,10 +143,11 @@ def find_and_replace_anchor(
 
     # Build the new content
     # Replace content between START and END markers
+    yaml_content = normalize_lines(yaml_content).rstrip('\n')
     new_content = (
         content[:content_start] +
         "\n" +
-        yaml_content.rstrip('\n') +
+        yaml_content +
         "\n" +
         content[content_end:]
     )
@@ -181,7 +188,7 @@ def process_target_file(
     # Write to temp file
     temp_path = temp_dir / target_path.replace('/', '_')
     temp_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(temp_path, 'w', encoding='utf-8') as f:
+    with open(temp_path, 'w', encoding='utf-8', newline='\n') as f:
         f.write(new_content)
 
     return True, str(temp_path)

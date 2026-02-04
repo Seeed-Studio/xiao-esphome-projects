@@ -7,6 +7,20 @@ import json
 import os
 
 
+def normalize_block(text: str) -> str:
+    """Normalize text for comparison by removing trailing whitespace per line.
+
+    This prevents whitespace-only diffs (e.g., spaces on blank lines) from
+    triggering sync/commits when the wiki repo auto-trims them.
+    """
+    if text is None:
+        return None
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    lines = text.split('\n')
+    lines = [line.rstrip() for line in lines]
+    return '\n'.join(lines).strip()
+
+
 def extract_anchored_content(content: str, yaml_key: str = None) -> str:
     """
     Extract content between AUTO-SYNC anchors.
@@ -54,7 +68,7 @@ def main():
             source_content = f.read()
         
         # Extract source anchored content
-        source_anchored = extract_anchored_content(source_content)
+        source_anchored = normalize_block(extract_anchored_content(source_content))
         if not source_anchored:
             continue  # Skip if no anchors in source
         
@@ -71,7 +85,7 @@ def main():
                 wiki_content = f.read()
             
             # Extract wiki anchored content
-            wiki_anchored = extract_anchored_content(wiki_content, yaml_key)
+            wiki_anchored = normalize_block(extract_anchored_content(wiki_content, yaml_key))
             if not wiki_anchored:
                 changed_files.append(yaml_file)
                 break
