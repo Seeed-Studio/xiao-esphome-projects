@@ -23,11 +23,11 @@ on:
 
 # Environment variables for easy configuration
 env:
-  WIKI_REPO: 'StarSphere-1024/wiki-documents'  # Change to 'Seeed-Studio/wiki-documents' for production
-  WIKI_BASE_BRANCH: 'sync-yaml'  # Test branch with anchors, change to 'main' for production
-  SOURCE_BASE_BRANCH: 'main'  # Source repo branch to sync from, change for testing
+  WIKI_REPO: 'Seeed-Studio/wiki-documents'
+  WIKI_BASE_BRANCH: 'docusaurus-version'
+  SOURCE_BASE_BRANCH: 'main'
   SYNC_BRANCH_PREFIX: 'sync-yaml-'
-  REVIEWER: ''  # Leave empty for testing, set to 'limengdu' for production
+  REVIEWER: 'limengdu'
   # NOTE: must be defined at workflow/job env level so step-level `if: env.DRY_RUN` works.
   # For workflow_run, inputs.* is unset; this expression safely falls back to 'false'.
   DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run) || 'false' }}
@@ -68,6 +68,8 @@ jobs:
         with:
           ref: ${{ steps.resolve-sha.outputs.head-sha }}
           path: source-repo
+          fetch-depth: 1
+          fetch-tags: false
 
       - name: Checkout wiki repository
         uses: actions/checkout@v5
@@ -75,7 +77,9 @@ jobs:
           repository: ${{ env.WIKI_REPO }}
           ref: ${{ env.WIKI_BASE_BRANCH }}
           path: wiki-repo
-          token: ${{ secrets.SYNC_TEST_TOKEN }}
+          token: ${{ secrets.WIKI_TOKEN }}
+          fetch-depth: 1
+          fetch-tags: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -106,6 +110,8 @@ jobs:
         with:
           ref: ${{ needs.detect-changes.outputs.head-sha }}
           path: source-repo
+          fetch-depth: 1
+          fetch-tags: false
 
       - name: Checkout wiki repository
         uses: actions/checkout@v5
@@ -113,8 +119,9 @@ jobs:
           repository: ${{ env.WIKI_REPO }}
           ref: ${{ env.WIKI_BASE_BRANCH }}
           path: wiki-target
-          token: ${{ secrets.SYNC_TEST_TOKEN }}
-          fetch-depth: 0
+          token: ${{ secrets.WIKI_TOKEN }}
+          fetch-depth: 1
+          fetch-tags: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -128,7 +135,7 @@ jobs:
       - name: Run sync script
         id: sync
         env:
-          GH_TOKEN: ${{ secrets.SYNC_TEST_TOKEN }}
+          GH_TOKEN: ${{ secrets.WIKI_TOKEN }}
         run: |
           if [ "${{ env.DRY_RUN }}" == "true" ]; then
             python sync-yaml.py \
@@ -201,7 +208,7 @@ jobs:
       - name: Create or update PR
         if: steps.branch.outputs.has-changes == 'true' && env.DRY_RUN != 'true'
         env:
-          GH_TOKEN: ${{ secrets.SYNC_TEST_TOKEN }}
+          GH_TOKEN: ${{ secrets.WIKI_TOKEN }}
         run: |
           BRANCH_NAME="${{ steps.branch.outputs.branch }}"
           PR_EXISTS=$(gh pr list \
