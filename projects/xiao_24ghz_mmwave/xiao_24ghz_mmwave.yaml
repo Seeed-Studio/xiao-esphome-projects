@@ -72,9 +72,6 @@ text_sensor:
       deep_sleep_id: deepSleep
 
 external_components:
-  - source: github://pr#7942
-    components: [ "adc" ]
-
   - source:
       type: git
       url: https://github.com/Seeed-Studio/xiao-esphome-projects
