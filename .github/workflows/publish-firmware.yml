@@ -85,6 +85,9 @@ jobs:
             projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/Seeed_IoT_Button_Zigbee.ino \
             --output-dir ./output/${{ matrix.device }}
       - name: Prepare Zigbee artifact for release uploader
+        env:
+          RELEASE_BODY: ${{ github.event.release.body }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
         run: |
           set -euo pipefail
           version="${{ github.event.release.tag_name }}"
@@ -102,19 +105,35 @@ jobs:
             mv "$f" "$ver_dir/$new_base"
           done
 
-          cat > "$ver_dir/manifest.json" <<EOF
-          {
-            "name": "$device",
-            "version": "$version",
-            "variant": "${{ matrix.variant }}",
-            "artifact_files": [
-              "${{ matrix.device }}.ino.bin",
-              "${{ matrix.device }}.ino.bootloader.bin",
-              "${{ matrix.device }}.ino.merged.bin",
-              "${{ matrix.device }}.ino.partitions.bin"
-            ]
-          }
-          EOF
+          factory_bin="${device}.ino.merged.bin"
+
+          factory_md5=$(md5sum "$ver_dir/$factory_bin" | awk '{print $1}')
+          factory_sha256=$(sha256sum "$ver_dir/$factory_bin" | awk '{print $1}')
+
+          jq -n \
+            --arg name "$device" \
+            --arg version "$version" \
+            --arg factory_path "$factory_bin" \
+            --arg factory_md5 "$factory_md5" \
+            --arg factory_sha256 "$factory_sha256" \
+            '{
+              name: $name,
+              version: $version,
+              new_install_prompt_erase: false,
+              builds: [
+                {
+                  chipFamily: "ESP32-C6",
+                  parts: [
+                    {
+                      path: $factory_path,
+                      offset: 0,
+                      md5: $factory_md5,
+                      sha256: $factory_sha256
+                    }
+                  ]
+                }
+              ]
+            }' > "$ver_dir/manifest.json"
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
