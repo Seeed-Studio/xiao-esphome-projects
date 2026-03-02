@@ -135,7 +135,7 @@ jobs:
               ]
             }' > "$ver_dir/manifest.json"
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           # Artifact name determines the final uploaded manifest name in upload-to-gh-release.
           name: ${{ matrix.device }}
