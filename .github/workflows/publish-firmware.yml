@@ -14,7 +14,7 @@ permissions:
 jobs:
   build-firmware-stable:
     name: Build ESPHome Firmware
-    uses: esphome/workflows/.github/workflows/build.yml@2025.10.0
+    uses: esphome/workflows/.github/workflows/build.yml@2026.4.0
     with:
       files: |
         projects/xiao_2_channel_wifi_ac_energy_meter/xiao_2_channel_wifi_ac_energy_meter.yaml
@@ -36,7 +36,7 @@ jobs:
   # # ESPHome dev version
   # build-firmware-dev:
   #   name: Build ESPHome Firmware (Dev)
-  #   uses: esphome/workflows/.github/workflows/build.yml@2025.10.0
+  #   uses: esphome/workflows/.github/workflows/build.yml@2026.4.0
   #   with:
   #     files: |
   #       projects/xiao_smart_ir_mate/xiao_smart_ir_mate.yaml
