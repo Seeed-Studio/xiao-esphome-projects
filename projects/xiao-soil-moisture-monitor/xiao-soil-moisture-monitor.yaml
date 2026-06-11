@@ -319,6 +319,7 @@ sensor:
   - platform: adc
     pin: GPIO0
     name: "Battery measurement"
+    device_class: "battery"
     attenuation: 12db
     # internal: true
     filters:                     # When the battery drops below 1V, it is dead.
