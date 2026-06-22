@@ -59,7 +59,7 @@ jobs:
             device: Seeed_IoT_Button_Zigbee_V2
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v2
       - name: Cache Arduino cores and libraries
