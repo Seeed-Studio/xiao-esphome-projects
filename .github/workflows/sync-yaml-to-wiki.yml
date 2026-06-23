@@ -64,7 +64,7 @@ jobs:
           echo "Resolved SHA: $SHA"
 
       - name: Checkout source repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.resolve-sha.outputs.head-sha }}
           path: source-repo
@@ -72,7 +72,7 @@ jobs:
           fetch-tags: false
 
       - name: Checkout wiki repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: ${{ env.WIKI_REPO }}
           ref: ${{ env.WIKI_BASE_BRANCH }}
@@ -106,7 +106,7 @@ jobs:
     if: needs.detect-changes.outputs.has-changes == 'true'
     steps:
       - name: Checkout source repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.detect-changes.outputs.head-sha }}
           path: source-repo
@@ -114,7 +114,7 @@ jobs:
           fetch-tags: false
 
       - name: Checkout wiki repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: ${{ env.WIKI_REPO }}
           ref: ${{ env.WIKI_BASE_BRANCH }}
