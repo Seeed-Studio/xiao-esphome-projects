@@ -63,7 +63,7 @@ jobs:
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v2
       - name: Cache Arduino cores and libraries
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.arduino15
