@@ -381,11 +381,6 @@ interval:
       - text_sensor.template.publish:
           id: soil_status
           state: !lambda |-
-            return "";
-      - delay: 10ms
-      - text_sensor.template.publish:
-          id: soil_status
-          state: !lambda |-
             float value = id(soil_sensor).state;
             float Diff = id(dry_value) - id(wet_value);
             if (value >= (id(dry_value) - Diff * id(ref_dry))) {
