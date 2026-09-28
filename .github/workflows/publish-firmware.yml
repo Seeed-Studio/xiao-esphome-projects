@@ -94,7 +94,10 @@ jobs:
           device="${{ matrix.device }}"
 
           out_dir="./output/${{ matrix.device }}"
-          ver_dir="$out_dir/$version"
+          # The release uploader walks files/<device>/<version>/{manifest.json,*.bin}
+          # and fails on any stray file, so stage into a clean tree — the elf/map
+          # left behind by the Arduino build stay out of the uploaded artifact.
+          ver_dir="./output/release/${{ matrix.device }}/$version"
           mkdir -p "$ver_dir"
 
           shopt -s nullglob
@@ -139,7 +142,7 @@ jobs:
         with:
           # Artifact name determines the final uploaded manifest name in upload-to-gh-release.
           name: ${{ matrix.device }}
-          path: ./output/${{ matrix.device }}
+          path: ./output/release
           retention-days: 1
 
   upload-to-release:
