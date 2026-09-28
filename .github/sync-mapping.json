@@ -8,11 +8,10 @@
     "IMPORTANT: yaml_key must be unique globally, use format: <project-name>/<yaml-filename>"
   ],
   "_anchor_format": "# ==== AUTO-SYNC START: <yaml_key> ==== ... # ==== AUTO-SYNC END ====",
-
   "projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter.yaml": {
     "targets": [
       {
-        "path": "docs/Sensor/SeeedStudio_XIAO_Gadgets/xiao_w5500_ethernet_adapter/esphome_with_xiao_w5500_ethernet_adapter.md",
+        "path": "sites/en/docs/Sensor/SeeedStudio_XIAO_Gadgets/xiao_w5500_ethernet_adapter/esphome_with_xiao_w5500_ethernet_adapter.md",
         "yaml_key": "xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter.yaml"
       }
     ]
@@ -20,7 +19,7 @@
   "projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml": {
     "targets": [
       {
-        "path": "docs/Sensor/SeeedStudio_XIAO_Gadgets/XIAO_Soil_Moisture_Sensor.md",
+        "path": "sites/en/docs/Sensor/SeeedStudio_XIAO_Gadgets/XIAO_Soil_Moisture_Sensor.md",
         "yaml_key": "xiao-soil-moisture-monitor/xiao-soil-moisture-monitor.yaml"
       }
     ]
@@ -28,7 +27,7 @@
   "projects/xiao_smart_ir_mate/xiao_smart_ir_mate.yaml": {
     "targets": [
       {
-        "path": "docs/Sensor/SeeedStudio_XIAO_Gadgets/XIAO_IR_MATE.md",
+        "path": "sites/en/docs/Sensor/SeeedStudio_XIAO_Gadgets/XIAO_IR_MATE.md",
         "yaml_key": "xiao_smart_ir_mate/xiao_smart_ir_mate.yaml"
       }
     ]
