@@ -70,7 +70,13 @@ wifi:
         value: 'true'
     - light.turn_on: rgb_light
     - lambda: |-
-        ESP_LOGI("ir", "IP address: %s", ::esphome::wifi::global_wifi_component->wifi_sta_ip_addresses()[0].str().c_str());
+        auto ips = ::esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
+        if (!ips.empty() && ips[0].is_set()) {
+          char ip_buf[46];
+          ESP_LOGI("ir", "IP address: %s", ips[0].str_to(ip_buf));
+        } else {
+          ESP_LOGI("ir", "IP address: not yet assigned");
+        }
 
   on_disconnect:
     - globals.set:

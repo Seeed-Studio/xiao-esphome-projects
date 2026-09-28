@@ -94,8 +94,6 @@ This project provides an ESPHome configuration for the Seeed Studio MR60FDA2 Kit
 ## External Components
 
 This configuration uses external components:
-- **adc:** Custom ADC component from ESPHome fork
-  - Source: [ssieb/esphome](https://github.com/ssieb/esphome) (ref: adc)
 - **seeed_mr60fda2:** Custom ESPHome component for MR60FDA2 sensor
   - Source: [MR60FDA2_ESPHome_external_components](https://github.com/limengdu/MR60FDA2_ESPHome_external_components)
 
