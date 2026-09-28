@@ -37,12 +37,6 @@ esp32:
 external_components:
   - source:
       type: git
-      url: https://github.com/ssieb/esphome
-      ref: adc
-    components: [ adc ]
-    refresh: 1min
-  - source:
-      type: git
       url: https://github.com/limengdu/MR60FDA2_ESPHome_external_components
       ref: main
     components: [ seeed_mr60fda2 ]
