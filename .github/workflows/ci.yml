@@ -48,7 +48,7 @@ concurrency:
 jobs:
   ci-esphome:
     name: Building ESPHome ${{ matrix.file }} / ${{ matrix.esphome-version }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: ubuntu-latest migrates to Ubuntu 26 on 2026-10-19
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -103,7 +103,7 @@ jobs:
 
   ci-arduino:
     name: Building Zigbee Arduino ${{ matrix.variant }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: ubuntu-latest migrates to Ubuntu 26 on 2026-10-19
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -117,7 +117,13 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v7
       - name: Setup Arduino CLI
-        uses: arduino/setup-arduino-cli@v2
+        # arduino/setup-arduino-cli@v2 (latest release) still targets Node 20 and
+        # upstream is inactive; install the pinned binary directly instead.
+        run: |
+          curl -fsSL --retry 3 -o /tmp/arduino-cli.tar.gz \
+            https://github.com/arduino/arduino-cli/releases/download/v1.5.1/arduino-cli_1.5.1_Linux_64bit.tar.gz
+          sudo tar -xzf /tmp/arduino-cli.tar.gz -C /usr/local/bin arduino-cli
+          arduino-cli version
       - name: Cache Arduino cores and libraries
         uses: actions/cache@v6
         with:

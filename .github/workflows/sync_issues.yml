@@ -13,7 +13,7 @@ on:
 
 jobs:
   add_issue_to_project:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: ubuntu-latest migrates to Ubuntu 26 on 2026-10-19
     steps:
       - name: Add issue to GitHub Project
         uses: actions/add-to-project@v2.0.0
