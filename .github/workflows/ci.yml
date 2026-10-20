@@ -124,16 +124,16 @@ jobs:
           path: |
             ~/.arduino15
             ~/.cache/arduino
-          key: ${{ runner.os }}-arduino-esp32-3.2.1-fastled-3.10.3-${{ hashFiles('projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/**') }}
+          key: ${{ runner.os }}-arduino-esp32-3.2.1-${{ hashFiles('projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/**') }}
           restore-keys: |
-            ${{ runner.os }}-arduino-esp32-3.2.1-fastled-3.10.3-
+            ${{ runner.os }}-arduino-esp32-3.2.1-
       - name: Install ESP32 platform
         run: |
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@3.2.1
       - name: Install libraries
         run: |
-          arduino-cli lib install "FastLED@3.10.3"
+          arduino-cli lib install FastLED
       - name: Compile Zigbee Arduino
         run: |
           arduino-cli compile --fqbn esp32:esp32:esp32c6:PartitionScheme=zigbee,ZigbeeMode=ed \

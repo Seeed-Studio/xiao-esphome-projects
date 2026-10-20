@@ -3,6 +3,14 @@
 #endif
 
 #include "Zigbee.h"
+// FastLED 3.10.7+ declares the RISC-V interrupt helpers with FL_NO_EXCEPT
+// (= noexcept on ESP) in riscv.hpp but defines them without it in the new
+// riscv.cpp.hpp, so any RISC-V build (ESP32-C3/C6) fails with "declaration
+// ... has a different exception specifier". FL_NO_EXCEPT is a documented
+// external override (fl/stl/noexcept.h); an empty override matches the
+// definitions as shipped and restores agreement. Drop this once the
+// mismatch is fixed upstream.
+#define FL_NO_EXCEPT
 #include <FastLED.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
