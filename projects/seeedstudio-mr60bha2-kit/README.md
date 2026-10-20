@@ -5,6 +5,9 @@ This project provides an ESPHome configuration for the Seeed Studio MR60BHA2 Kit
 ## Features
 
 - **ESP32-C6 Support:** Uses ESP-IDF framework for the XIAO ESP32-C6 board with 4MB flash.
+- **Reliable Wi-Fi:** Disables Wi-Fi power saving (a known cause of stalls and disconnects on the ESP32-C6) and configures the XIAO ESP32-C6 RF switch so the built-in antenna works at full performance under ESP-IDF.
+- **Easy Adoption:** `dashboard_import` lets the ESPHome Device Builder adopt a kit flashed with the factory image in one click.
+- **Diagnostics:** Uptime, Wi-Fi RSSI, last reset reason, and a restart button for troubleshooting.
 - **Vital Signs Monitoring:** Real-time detection of heart rate and respiratory rate.
 - **Presence Detection:** Binary sensor for person information detection.
 - **Distance Measurement:** Measures distance to detection objects.
@@ -31,6 +34,8 @@ This project provides an ESPHome configuration for the Seeed Studio MR60BHA2 Kit
 | GPIO1    | RGB LED          | WS2812 data pin                |
 | GPIO22   | I2C SDA          | BH1750 SDA                     |
 | GPIO23   | I2C SCL          | BH1750 SCL                     |
+| GPIO3    | RF switch power  | On-module, driven LOW by the config (no wiring needed) |
+| GPIO14   | RF antenna select| On-module, driven LOW by the config to select the built-in antenna (no wiring needed) |
 
 ## Sensors and Entities
 
@@ -47,21 +52,30 @@ This project provides an ESPHome configuration for the Seeed Studio MR60BHA2 Kit
 ### Lights
 - **RGB Light:** WS2812 RGB LED for status indication and visual feedback.
 
+### Diagnostics
+- **Uptime:** How long the device has been running.
+- **WiFi Signal:** Wi-Fi RSSI in dBm.
+- **Reset Reason:** Why the device last rebooted (power-on, panic, watchdog, ...).
+- **Restart:** Button to reboot the device remotely.
+
 ## Setup Instructions
 
-1. **Clone the Project:**
+1. **Adopt the kit (recommended):**
+   Flash the factory ESPHome image from [web.esphome.io](https://web.esphome.io), connect it via USB, and it shows up in the ESPHome Device Builder as adoptable. Click **Adopt** — this configuration is imported automatically — then add your Wi-Fi credentials and install.
+
+2. **Manual setup:**
    ```sh
    git clone https://github.com/Seeed-Studio/xiao-esphome-projects
    cd xiao-esphome-projects/projects/seeedstudio-mr60bha2-kit
    ```
 
-2. **Install ESPHome:**
+3. **Install ESPHome:**
    ```sh
    pip install esphome
    ```
    Or use Home Assistant ESPHome add-on.
 
-3. **Configure WiFi:**
+4. **Configure WiFi:**
     Edit `seeedstudio-mr60bha2-kit.yaml` and add your WiFi credentials:
    ```yaml
    wifi:
@@ -69,13 +83,13 @@ This project provides an ESPHome configuration for the Seeed Studio MR60BHA2 Kit
      password: "YOUR_WIFI_PASSWORD"
    ```
 
-4. **Compile and Upload:**
+5. **Compile and Upload:**
    Connect your XIAO ESP32-C6 via USB and run:
    ```sh
    esphome run seeedstudio-mr60bha2-kit.yaml
    ```
 
-5. **Add to Home Assistant:**
+6. **Add to Home Assistant:**
    - The device will be automatically discoverable via the ESPHome integration.
    - All sensors and binary sensors will be available in Home Assistant.
 
@@ -103,7 +117,10 @@ This configuration uses an external component:
 ## Troubleshooting
 
 - **No Vital Signs Data:** Ensure the person is within the recommended detection range (0.5-2 meters) and relatively still.
-- **WiFi Connection Issues:** The device will start a fallback hotspot named "seeedstudio-mr60bha2" for configuration.
+- **WiFi stalls or periodic disconnects:** This config sets `power_save_mode: none`, which fixes the modem-sleep stalls seen on ESP32-C6. Do not re-enable power saving on this kit.
+- **Weak signal / poor RSSI:** The config drives the XIAO ESP32-C6 RF switch (GPIO3/GPIO14) to select the built-in antenna; without it RSSI can be ~10 dB worse. If you have attached an external U.FL antenna, change `rf_antenna_select`'s `restore_mode` to `ALWAYS_ON` to switch over.
+- **OTA updates failing:** Devices running firmware older than v3.6 may fail OTA mid-upload due to the Wi-Fi power-save issue. Flash once over USB with the new config; OTA works normally afterwards.
+- **Fallback hotspot:** If Wi-Fi connection fails, the device starts a hotspot named "seeedstudio-mr60bha2" for configuration.
 - **Sensor Not Responding:** Check UART wiring and ensure the MR60BHA2 module is properly powered.
 - **I2C Errors:** Verify BH1750 sensor wiring and I2C address (default: 0x23).
 
