@@ -2,6 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
 from esphome.const import CONF_ID, CONF_TRIGGER_ID, CONF_WAKEUP_PIN
+import inspect
 from esphome import pins
 
 light_sleep_ns = cg.esphome_ns.namespace('light_sleep')
@@ -41,8 +42,13 @@ LIGHT_SLEEP_ENTER_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.use_id(LightSleep)
 })
 
-# Register the light_sleep.enter action
-@automation.register_action('light_sleep.enter', LightSleepEnterAction, LIGHT_SLEEP_ENTER_SCHEMA)
+# Register the light_sleep.enter action.
+# synchronous=True: play() only calls parent_->enter_sleep() and returns; the
+# Action base class then calls play_next_() before play_complex() returns.
+# Omit the kwarg on esphome versions whose register_action lacks it.
+_ACTION_KW = {'synchronous': True} if 'synchronous' in inspect.signature(automation.register_action).parameters else {}
+
+@automation.register_action('light_sleep.enter', LightSleepEnterAction, LIGHT_SLEEP_ENTER_SCHEMA, **_ACTION_KW)
 async def light_sleep_enter_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     parent = await cg.get_variable(config[CONF_ID])

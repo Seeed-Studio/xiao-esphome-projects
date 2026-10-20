@@ -9,8 +9,6 @@ esphome:
   project:
     name: "seeedstudio.6_channel_relay_for_xiao"
     version: "0.1"
-  platformio_options:
-    board_upload.maxium_size: 4194304
   min_version: "2024.3.2" # Fix logger compile error on ESP32-C6 esphome#6323
   on_boot:
     priority: 250

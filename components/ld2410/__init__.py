@@ -5,6 +5,13 @@ from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PASSWORD, CONF_THROTTLE, CONF_TIMEOUT
 
+import inspect
+
+# synchronous=True for register_action: play() returns immediately and the
+# Action base class calls play_next_() before play_complex() returns. The
+# kwarg is omitted on esphome versions whose register_action lacks it.
+_ACTION_KW = {'synchronous': True} if 'synchronous' in inspect.signature(automation.register_action).parameters else {}
+
 DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@sebcaps", "@regevbr"]
 MULTI_CONF = True
@@ -98,8 +105,11 @@ BLUETOOTH_PASSWORD_SET_SCHEMA = cv.Schema(
 )
 
 
+# synchronous=True: play() sets the password and returns immediately; the
+# Action base class then calls play_next_() before play_complex() returns.
 @automation.register_action(
-    "bluetooth_password.set", BluetoothPasswordSetAction, BLUETOOTH_PASSWORD_SET_SCHEMA
+    "bluetooth_password.set", BluetoothPasswordSetAction, BLUETOOTH_PASSWORD_SET_SCHEMA,
+    **_ACTION_KW
 )
 async def bluetooth_password_set_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])

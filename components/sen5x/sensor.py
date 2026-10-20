@@ -34,6 +34,13 @@ from esphome.const import (
     DEVICE_CLASS_CARBON_DIOXIDE,
 )
 
+import inspect
+
+# synchronous=True for register_action: play() returns immediately and the
+# Action base class calls play_next_() before play_complex() returns. The
+# kwarg is omitted on esphome versions whose register_action lacks it.
+_ACTION_KW = {'synchronous': True} if 'synchronous' in inspect.signature(automation.register_action).parameters else {}
+
 CODEOWNERS = ["@martgras"]
 DEPENDENCIES = ["i2c"]
 AUTO_LOAD = ["sensirion_common"]
@@ -254,8 +261,10 @@ SEN5X_ACTION_SCHEMA = maybe_simple_id(
 )
 
 
+# synchronous=True: play() only calls start_fan_autoclean() and returns; the
+# Action base class then calls play_next_() before play_complex() returns.
 @automation.register_action(
-    "sen5x.start_fan_autoclean", StartFanAction, SEN5X_ACTION_SCHEMA
+    "sen5x.start_fan_autoclean", StartFanAction, SEN5X_ACTION_SCHEMA, **_ACTION_KW
 )
 async def sen54_fan_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])

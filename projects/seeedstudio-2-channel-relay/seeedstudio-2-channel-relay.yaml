@@ -41,7 +41,9 @@ web_server:
 uart:
   id: uart_bus
   tx_pin: GPIO3
-  rx_pin: GPIO2
+  rx_pin:
+    number: GPIO2
+    ignore_strapping_warning: True
   baud_rate: 4800
   stop_bits: 1
 

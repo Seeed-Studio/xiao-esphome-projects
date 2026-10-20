@@ -9,8 +9,6 @@ esphome:
   project:
     name: "seeedstudio.iot_button_v2"
     version: "1.0"
-  platformio_options:
-    board_upload.maximum_size: 4194304
   on_boot:
     priority: 600.0
     then:
@@ -320,8 +318,7 @@ light:
     num_leds: 1
     restore_mode: RESTORE_AND_OFF
     chipset: WS2812
-    rgb_order: GRB
-    is_rgbw: False
+    channel_colors: GRB
     name: "RGB Status LED"
     id: rgb_led
     effects:

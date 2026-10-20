@@ -6,8 +6,6 @@ esphome:
   name: "${name}"
   friendly_name: "${friendly_name}"
   name_add_mac_suffix: false
-  platformio_options:
-    board_upload.maximum_size: 4194304
   on_boot:
     priority: -100.0
     then:
@@ -90,6 +88,7 @@ light_sleep:
   id: light_sleep_1
   wakeup_pin: 
     number: GPIO9
+    ignore_strapping_warning: True
     allow_other_uses: True 
   on_prepare_sleep:
     then:
@@ -237,8 +236,7 @@ light:
     num_leds: 1
     restore_mode: RESTORE_AND_OFF
     chipset: WS2812
-    rgb_order: GRB
-    is_rgbw: False
+    channel_colors: GRB
     name: "RGB Status LED"
     id: rgb_led
     effects:
@@ -268,6 +266,7 @@ binary_sensor:
   - platform: gpio
     pin:
       number: GPIO9
+      ignore_strapping_warning: True
       inverted: True
       mode:
         input: True

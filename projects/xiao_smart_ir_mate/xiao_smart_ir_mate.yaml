@@ -105,6 +105,7 @@ Flash_comp:
 remote_transmitter:
   id: my_transmitter
   pin: GPIO3
+  non_blocking: true
   carrier_duty_percent: 50%
 
 remote_receiver:
@@ -218,7 +219,7 @@ switch:
 
 light:
   - platform: esp32_rmt_led_strip
-    rgb_order: GRB
+    channel_colors: GRB
     pin: GPIO7 # D5
     num_leds: 1
     chipset: WS2812
@@ -247,6 +248,7 @@ binary_sensor:
     id: reset_button
     pin:
       number: GPIO9 # D9
+      ignore_strapping_warning: True
       mode: INPUT_PULLUP
     filters:
       invert
