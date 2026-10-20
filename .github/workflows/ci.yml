@@ -48,7 +48,7 @@ concurrency:
 jobs:
   ci-esphome:
     name: Building ESPHome ${{ matrix.file }} / ${{ matrix.esphome-version }}
-    runs-on: ubuntu-24.04  # pinned: ubuntu-latest migrates to Ubuntu 26 on 2026-10-19
+    runs-on: ubuntu-26.04  # pinned explicitly: ubuntu-latest migrated to Ubuntu 26 on 2026-10-19
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -103,7 +103,7 @@ jobs:
 
   ci-arduino:
     name: Building Zigbee Arduino ${{ matrix.variant }}
-    runs-on: ubuntu-24.04  # pinned: ubuntu-latest migrates to Ubuntu 26 on 2026-10-19
+    runs-on: ubuntu-26.04  # pinned explicitly: ubuntu-latest migrated to Ubuntu 26 on 2026-10-19
     timeout-minutes: 30
     strategy:
       fail-fast: false
