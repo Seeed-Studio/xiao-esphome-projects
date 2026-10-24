@@ -95,7 +95,35 @@ enum class ButtonEvent
 #define SWITCH1_ENDPOINT 11
 #define SWITCH2_ENDPOINT 12
 #define SWITCH3_ENDPOINT 13
-ZigbeeBinary zbIoTButton = ZigbeeBinary(BUTTON_ENDPOINT);
+
+class VersionedZigbeeBinary : public ZigbeeBinary
+{
+public:
+  explicit VersionedZigbeeBinary(uint8_t endpoint) : ZigbeeBinary(endpoint) {}
+
+  bool setSoftwareBuildId(const char *version)
+  {
+    const size_t versionLength = strlen(version);
+    if (versionLength > ZB_MAX_NAME_LENGTH)
+    {
+      return false;
+    }
+
+    esp_zb_attribute_list_t *basicCluster =
+        esp_zb_cluster_list_get_cluster(_cluster_list, ESP_ZB_ZCL_CLUSTER_ID_BASIC, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    if (basicCluster == nullptr)
+    {
+      return false;
+    }
+
+    char zclVersion[ZB_MAX_NAME_LENGTH + 2] = {};
+    zclVersion[0] = static_cast<char>(versionLength);
+    memcpy(zclVersion + 1, version, versionLength);
+    return esp_zb_basic_cluster_add_attr(basicCluster, ESP_ZB_ZCL_ATTR_BASIC_SW_BUILD_ID, zclVersion) == ESP_OK;
+  }
+};
+
+VersionedZigbeeBinary zbIoTButton(BUTTON_ENDPOINT);
 ZigbeeBinary zbSwitch1 = ZigbeeBinary(SWITCH1_ENDPOINT);
 ZigbeeBinary zbSwitch2 = ZigbeeBinary(SWITCH2_ENDPOINT);
 ZigbeeBinary zbSwitch3 = ZigbeeBinary(SWITCH3_ENDPOINT);
@@ -698,6 +726,10 @@ void zigbeeSetupTask(void *pvParameters)
 #elif defined(IOT_BUTTON_V2)
   zbIoTButton.setManufacturerAndModel("Seeed Studio", "IoT Button V2");
   zbIoTButton.setPowerSource(ZB_POWER_SOURCE_BATTERY, 100);
+  if (!zbIoTButton.setSoftwareBuildId(VERSION))
+  {
+    LOG_PRINTLN("Failed to set Zigbee software build ID");
+  }
 #endif
 
   // Add endpoint to Zigbee Core

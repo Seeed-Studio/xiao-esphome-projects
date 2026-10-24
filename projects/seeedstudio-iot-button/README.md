@@ -43,6 +43,7 @@ This project provides configurations and code for the Seeed Studio IoT Button, a
 - **Arduino with Zigbee**:
   - Zigbee communication.
   - Battery monitoring with lookup table and anti-jitter logic for stable and accurate percentage reporting.
+  - Firmware version reported through the Zigbee Basic cluster for Home Assistant.
   - Red and blue LEDs for status indication: blue for normal operation, red for errors or low battery.
   - Deep sleep mode after inactivity: 2 minutes when not connected, 30 seconds when connected to Zigbee network. Wakeup on button press.
 
