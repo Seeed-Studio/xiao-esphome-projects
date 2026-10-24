@@ -22,8 +22,12 @@
 #include "driver/rtc_io.h"
 #include <Preferences.h>
 
-// Software version
-#define VERSION "1.2"
+// Release builds inject the published GitHub release tag as a token.
+#define STRINGIFY_TOKEN(value) #value
+#define STRINGIFY(value) STRINGIFY_TOKEN(value)
+#ifndef FIRMWARE_VERSION
+#define FIRMWARE_VERSION development
+#endif
 
 // Logging macro switch
 #define ENABLE_LOGGING // Comment out to disable logging
@@ -726,7 +730,7 @@ void zigbeeSetupTask(void *pvParameters)
 #elif defined(IOT_BUTTON_V2)
   zbIoTButton.setManufacturerAndModel("Seeed Studio", "IoT Button V2");
   zbIoTButton.setPowerSource(ZB_POWER_SOURCE_BATTERY, 100);
-  if (!zbIoTButton.setSoftwareBuildId(VERSION))
+  if (!zbIoTButton.setSoftwareBuildId(STRINGIFY(FIRMWARE_VERSION)))
   {
     LOG_PRINTLN("Failed to set Zigbee software build ID");
   }
