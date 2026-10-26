@@ -730,11 +730,11 @@ void zigbeeSetupTask(void *pvParameters)
 #elif defined(IOT_BUTTON_V2)
   zbIoTButton.setManufacturerAndModel("Seeed Studio", "IoT Button V2");
   zbIoTButton.setPowerSource(ZB_POWER_SOURCE_BATTERY, 100);
+#endif
   if (!zbIoTButton.setSoftwareBuildId(STRINGIFY(FIRMWARE_VERSION)))
   {
     LOG_PRINTLN("Failed to set Zigbee software build ID");
   }
-#endif
 
   // Add endpoint to Zigbee Core
   Zigbee.addEndpoint(&zbIoTButton);
