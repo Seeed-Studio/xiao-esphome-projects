@@ -78,6 +78,7 @@ const uint32_t LONG_PRESS_TIME = 5000;             // Minimum time for long pres
 const uint32_t DEBOUNCE_TIME = 20;                 // Debounce time (ms)
 const uint32_t SLEEP_TIMEOUT_DISCONNECTED = 2 * 60 * 1000; // 2 minutes when disconnected (for configuration) (ms)
 const uint32_t SLEEP_TIMEOUT_CONNECTED = 30 * 1000; // 30 seconds when connected (ms)
+const uint32_t REPORT_SPACING_TIME = 200;           // Reports carry the value at send time, so hold each replayed value (ms)
 
 /* LED Configuration */
 CRGB rgbs[NUM_RGBS];
@@ -91,7 +92,8 @@ enum class ButtonEvent
   DOUBLE_CLICK,     // Double click
   TRIPLE_CLICK,     // Triple click
   SHORT_LONG_PRESS, // Short long press (1-5 seconds)
-  LONG_PRESS        // Long press (>5 seconds)
+  LONG_PRESS,       // Long press (>5 seconds)
+  ZIGBEE_CONNECTED  // Zigbee (re)connected; queued with button events so switch reports stay in order
 };
 
 /* Zigbee Configuration */
@@ -127,14 +129,32 @@ public:
   }
 };
 
+class InitialStateZigbeeBinary : public ZigbeeBinary
+{
+public:
+  explicit InitialStateZigbeeBinary(uint8_t endpoint) : ZigbeeBinary(endpoint) {}
+
+  bool setInitialBinaryInput(bool input)
+  {
+    esp_zb_attribute_list_t *binaryInputCluster =
+        esp_zb_cluster_list_get_cluster(_cluster_list, ESP_ZB_ZCL_CLUSTER_ID_BINARY_INPUT, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    return binaryInputCluster != nullptr &&
+           esp_zb_cluster_update_attr(binaryInputCluster, ESP_ZB_ZCL_ATTR_BINARY_INPUT_PRESENT_VALUE_ID, &input) == ESP_OK;
+  }
+};
+
 VersionedZigbeeBinary zbIoTButton(BUTTON_ENDPOINT);
-ZigbeeBinary zbSwitch1 = ZigbeeBinary(SWITCH1_ENDPOINT);
-ZigbeeBinary zbSwitch2 = ZigbeeBinary(SWITCH2_ENDPOINT);
-ZigbeeBinary zbSwitch3 = ZigbeeBinary(SWITCH3_ENDPOINT);
+InitialStateZigbeeBinary zbSwitch1(SWITCH1_ENDPOINT);
+InitialStateZigbeeBinary zbSwitch2(SWITCH2_ENDPOINT);
+InitialStateZigbeeBinary zbSwitch3(SWITCH3_ENDPOINT);
 bool buttonStatus = false;
 RTC_DATA_ATTR bool switch1Status = false;
 RTC_DATA_ATTR bool switch2Status = false;
 RTC_DATA_ATTR bool switch3Status = false;
+// Last switch states reported to the network, replayed on reconnect so offline changes arrive as transitions
+RTC_DATA_ATTR bool switch1Reported = false;
+RTC_DATA_ATTR bool switch2Reported = false;
+RTC_DATA_ATTR bool switch3Reported = false;
 
 /* Global Variables */
 QueueHandle_t eventQueue;
@@ -153,6 +173,8 @@ volatile bool isAwake = true;   // Tracks device awake/sleep state
 bool lastConnected = false;     // Track previous Zigbee connection state
 bool zigbeeInitialized = false; // Track Zigbee initialization status
 bool zigbeeConnected = false; // Track Zigbee connection status for battery sampling
+volatile bool zigbeeStatesSynced = false; // Button and switch states replayed since the last (re)connect
+uint32_t pendingButtonPresses = 0;        // Presses not yet reported, e.g. the one that woke the device
 bool disableSleep = false; // Flag to disable automatic sleep
 
 #if defined(IOT_BUTTON_V2)
@@ -474,6 +496,15 @@ void buttonTask(void *pvParameters)
   }
 }
 
+static void reportSwitchState(ZigbeeBinary &zbSwitch, bool state, bool &reportedState)
+{
+  zbSwitch.setBinaryInput(state);
+  if (zbSwitch.reportBinaryInput())
+  {
+    reportedState = state;
+  }
+}
+
 void mainTask(void *pvParameters)
 {
   ButtonEvent event;
@@ -488,7 +519,7 @@ void mainTask(void *pvParameters)
         {
           buttonStatus = true;
           LOG_PRINTLN("Button Pressed");
-          if (zigbeeInitialized && Zigbee.connected())
+          if (zigbeeStatesSynced && Zigbee.connected())
           {
             zbIoTButton.setBinaryInput(buttonStatus);
             zbIoTButton.reportBinaryInput();
@@ -501,10 +532,14 @@ void mainTask(void *pvParameters)
         {
           buttonStatus = false;
           LOG_PRINTLN("Button Released");
-          if (zigbeeInitialized && Zigbee.connected())
+          if (zigbeeStatesSynced && Zigbee.connected())
           {
             zbIoTButton.setBinaryInput(buttonStatus);
             zbIoTButton.reportBinaryInput();
+          }
+          else
+          {
+            pendingButtonPresses++;
           }
         }
         break;
@@ -512,10 +547,9 @@ void mainTask(void *pvParameters)
       case ButtonEvent::SINGLE_CLICK:
         LOG_PRINTLN("Single Click");
         switch1Status = !switch1Status;
-        if (zigbeeInitialized && Zigbee.connected())
+        if (zigbeeStatesSynced && Zigbee.connected())
         {
-          zbSwitch1.setBinaryInput(switch1Status);
-          zbSwitch1.reportBinaryInput();
+          reportSwitchState(zbSwitch1, switch1Status, switch1Reported);
         }
         xTaskCreate(breathingLedTask, "BreathingLed", 2048, NULL, 1, NULL);
         break;
@@ -523,10 +557,9 @@ void mainTask(void *pvParameters)
       case ButtonEvent::DOUBLE_CLICK:
         LOG_PRINTLN("Double Click");
         switch2Status = !switch2Status;
-        if (zigbeeInitialized && Zigbee.connected())
+        if (zigbeeStatesSynced && Zigbee.connected())
         {
-          zbSwitch2.setBinaryInput(switch2Status);
-          zbSwitch2.reportBinaryInput();
+          reportSwitchState(zbSwitch2, switch2Status, switch2Reported);
         }
         xTaskCreate(blinkLedTask, "BlinkLed", 2048, NULL, 1, NULL);
         break;
@@ -542,10 +575,9 @@ void mainTask(void *pvParameters)
       case ButtonEvent::SHORT_LONG_PRESS:
         LOG_PRINTLN("Short Long Press");
         switch3Status = !switch3Status;
-        if (zigbeeInitialized && Zigbee.connected())
+        if (zigbeeStatesSynced && Zigbee.connected())
         {
-          zbSwitch3.setBinaryInput(switch3Status);
-          zbSwitch3.reportBinaryInput();
+          reportSwitchState(zbSwitch3, switch3Status, switch3Reported);
         }
         xTaskCreate(rainbowLedTask, "RainbowLed", 2048, NULL, 1, NULL);
         break;
@@ -558,6 +590,57 @@ void mainTask(void *pvParameters)
           Zigbee.factoryReset();
         }
         break;
+
+      case ButtonEvent::ZIGBEE_CONNECTED:
+      {
+        // Replay last reported states first so offline changes, like the wake click, arrive as transitions
+        zbSwitch1.setBinaryInput(switch1Reported);
+        zbSwitch1.reportBinaryInput();
+        zbSwitch2.setBinaryInput(switch2Reported);
+        zbSwitch2.reportBinaryInput();
+        zbSwitch3.setBinaryInput(switch3Reported);
+        zbSwitch3.reportBinaryInput();
+        bool switchesChanged =
+            switch1Status != switch1Reported || switch2Status != switch2Reported || switch3Status != switch3Reported;
+        if (pendingButtonPresses > 0 || switchesChanged)
+        {
+          vTaskDelay(REPORT_SPACING_TIME / portTICK_PERIOD_MS);
+        }
+        // Presses come before the switch changes they caused, matching the order while connected
+        for (; pendingButtonPresses > 0; pendingButtonPresses--)
+        {
+          zbIoTButton.setBinaryInput(true);
+          zbIoTButton.reportBinaryInput();
+          vTaskDelay(REPORT_SPACING_TIME / portTICK_PERIOD_MS);
+          zbIoTButton.setBinaryInput(false);
+          zbIoTButton.reportBinaryInput();
+          vTaskDelay(REPORT_SPACING_TIME / portTICK_PERIOD_MS);
+        }
+        if (buttonStatus)
+        {
+          zbIoTButton.setBinaryInput(true);
+          zbIoTButton.reportBinaryInput();
+        }
+        if (switch1Status != switch1Reported)
+        {
+          reportSwitchState(zbSwitch1, switch1Status, switch1Reported);
+        }
+        if (switch2Status != switch2Reported)
+        {
+          reportSwitchState(zbSwitch2, switch2Status, switch2Reported);
+        }
+        if (switch3Status != switch3Reported)
+        {
+          reportSwitchState(zbSwitch3, switch3Status, switch3Reported);
+        }
+        if (switchesChanged)
+        {
+          // Keep a click queued during the sync from replacing these values before they are sent
+          vTaskDelay(REPORT_SPACING_TIME / portTICK_PERIOD_MS);
+        }
+        zigbeeStatesSynced = true;
+        break;
+      }
       }
     }
   }
@@ -701,12 +784,8 @@ void onZigbeeConnected()
   zbIoTButton.setBatteryPercentage((uint8_t)batteryPercentage);
   zbIoTButton.reportBatteryPercentage();
 #endif
-  zbSwitch1.setBinaryInput(switch1Status);
-  zbSwitch1.reportBinaryInput();
-  zbSwitch2.setBinaryInput(switch2Status);
-  zbSwitch2.reportBinaryInput();
-  zbSwitch3.setBinaryInput(switch3Status);
-  zbSwitch3.reportBinaryInput();
+  ButtonEvent event = ButtonEvent::ZIGBEE_CONNECTED;
+  xQueueSend(eventQueue, &event, portMAX_DELAY);
 }
 
 void zigbeeSetupTask(void *pvParameters)
@@ -723,6 +802,9 @@ void zigbeeSetupTask(void *pvParameters)
   zbSwitch3.addBinaryInput();
   zbSwitch3.setBinaryInputApplication(BINARY_INPUT_APPLICATION_TYPE_SECURITY_MOTION_DETECTION);
   zbSwitch3.setBinaryInputDescription("Switch3");
+  zbSwitch1.setInitialBinaryInput(switch1Reported);
+  zbSwitch2.setInitialBinaryInput(switch2Reported);
+  zbSwitch3.setInitialBinaryInput(switch3Reported);
 
   // Set Zigbee device information
 #if defined(IOT_BUTTON_V1)
@@ -883,6 +965,7 @@ void loop()
     {
       LOG_PRINTLN("Zigbee disconnected!");
       zigbeeConnected = false;
+      zigbeeStatesSynced = false;
     }
     lastConnected = currentConnected;
     if (!currentConnected)
