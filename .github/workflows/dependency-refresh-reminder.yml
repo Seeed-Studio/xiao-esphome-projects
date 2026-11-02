@@ -1,0 +1,50 @@
+name: Dependency Refresh Reminder
+
+# The dependabot batch PR (monthly, grouped, single) is merged in a
+# half-yearly window rather than as it arrives; keep that window from
+# being forgotten.
+
+on:
+  schedule:
+    - cron: "17 2 7 1 *" # Jan 7, 02:17 UTC
+    - cron: "17 2 7 7 *" # Jul 7, 02:17 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-24.04 # pinned explicitly: ubuntu-latest migrated to Ubuntu 26 on 2026-10-19
+    steps:
+      - name: Open half-yearly dependency refresh issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PERIOD: ${{ github.event.schedule == '17 2 7 1 *' && 'H1' || 'H2' }}
+        run: |
+          TITLE="Dependency refresh window ${PERIOD}: merge the batched dependabot PR"
+          if gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"$TITLE\"" | grep -q .; then
+            echo "Reminder issue already open, skipping."
+            exit 0
+          fi
+          PRS=$(gh pr list --repo "$GITHUB_REPOSITORY" --author "app/dependabot" --state open --json number,title --jq '.[] | "#\(.number) \(.title)"' || true)
+          BODY=$(cat <<'EOF'
+          Half-yearly dependency refresh window is open.
+
+          ## To do
+
+          1. Review the open dependabot batch PR (grouped, at most one) and check for critical items:
+             - `esphome/workflows` reusable-workflow bumps (build/release pipeline)
+             - `esphome/build-action` bumps
+             - any action with a published security advisory (see the Security tab)
+          2. If CI is green, merge it. Nothing else to do until the next window.
+          3. If a critical item appeared mid-cycle, it may already have been merged earlier — verify the PR contents either way.
+
+          Dependabot alerts keep running independently of this schedule; this reminder is only about the batched version updates.
+
+          Open dependabot PRs right now:
+
+          EOF
+          )
+          if [ -n "$PRS" ]; then BODY="${BODY}${PRS}"; else BODY="${BODY}(none open — nothing to merge this window)"; fi
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$BODY" --label "dependencies"

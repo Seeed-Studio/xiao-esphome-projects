@@ -1,6 +1,18 @@
 version: 2
+# Policy: one grouped bump PR per month, merged in the January/July window
+# (or earlier when something critical lands, e.g. an esphome/workflows or
+# build-action bump, or a security advisory). Dependabot security alerts
+# stay on independently of this version-update schedule.
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    open-pull-requests-limit: 1
+    groups:
+      # Collapse every action / reusable-workflow bump into a single PR so
+      # main only ever sees one batched "chore(deps)" commit per merge.
+      all-actions:
+        patterns: ["*"]
+    labels:
+      - "dependencies"
