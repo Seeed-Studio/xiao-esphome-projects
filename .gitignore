@@ -4,3 +4,9 @@
 .esphome/
 /secrets.yaml
 *.vscode/
+
+# ESP-IDF build output (projects/xiao-esp32-c5-zigbee-router); dependencies.lock stays tracked
+/projects/xiao-esp32-c5-zigbee-router/build/
+/projects/xiao-esp32-c5-zigbee-router/managed_components/
+/projects/xiao-esp32-c5-zigbee-router/sdkconfig
+/projects/xiao-esp32-c5-zigbee-router/sdkconfig.old

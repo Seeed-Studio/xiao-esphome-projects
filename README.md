@@ -106,7 +106,6 @@ Seeed Studio 6 Channel Relay is a six-channel relay module based on XIAO ESP32-C
 
 An ESP-IDF Zigbee router firmware for XIAO ESP32-C5, tested with Home Assistant ZHA. This standalone native ESP-IDF project is separate from the ESPHome YAML configurations. See [the project README](projects/xiao-esp32-c5-zigbee-router/README.md) for build, flash, and test details.
 
-
 ## Installation
 
 ### 📱 Web Installer - One-Click Firmware Installation
