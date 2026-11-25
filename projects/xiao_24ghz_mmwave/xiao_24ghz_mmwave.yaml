@@ -24,6 +24,10 @@ esp32:
 # Enable logging
 logger:
   level: NONE
+  # ESPHome 2026.11.0+ checks boot_log_level (default WARN) against level, so it must be NONE
+  # here too. The boot log buffer stays disabled (boot_log_buffer_size defaults to 0), so this
+  # changes nothing at runtime. On ESPHome older than 2026.11.0 the key is unknown: drop it.
+  boot_log_level: NONE
 
 # Enable Home Assistant API
 api:
