@@ -1,5 +1,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_system.h"
+#include <inttypes.h>
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -80,7 +82,9 @@ static void boot_button_task(void *arg)
             (xTaskGetTickCount() - pressed_at) >= pdMS_TO_TICKS(BUTTON_LONG_PRESS_MS)) {
             long_action_done = true;
             if (esp_zb_lock_acquire(portMAX_DELAY)) {
-                ESP_LOGW(TAG, "BOOT held >= 8s: Zigbee local reset/rejoin action");
+                ESP_LOGW(TAG, "BOOT held >= 8s: Zigbee local reset (leave network, clear settings)");
+                /* No-op while not on a network; the ESP_ZB_ZDO_SIGNAL_LEAVE handler below
+                 * reboots once the reset has completed. */
                 esp_zb_bdb_reset_via_local_action();
                 esp_zb_lock_release();
             }
@@ -128,6 +132,22 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal)
                                    ESP_ZB_BDB_MODE_NETWORK_STEERING, STEERING_RETRY_MS);
         }
         break;
+    case ESP_ZB_ZDO_SIGNAL_LEAVE: {
+        /* Raised once the device is off the network. A RESET-type leave (local reset, or a
+         * removal by the coordinator) has also wiped the Zigbee persistent data, but the stack
+         * neither reboots nor starts commissioning by itself, so the router would sit offline
+         * until power-cycled. Reboot instead: the first-start path above then sees a factory-new
+         * device and starts network steering (it retries every STEERING_RETRY_MS). */
+        esp_zb_zdo_signal_leave_params_t *leave =
+            (esp_zb_zdo_signal_leave_params_t *)esp_zb_app_signal_get_params(signal->p_app_signal);
+        s_network_joined = false;
+        if (leave->leave_type == ESP_ZB_NWK_LEAVE_TYPE_RESET) {
+            ESP_LOGW(TAG, "Left network and cleared Zigbee settings; restarting to steer again");
+            esp_restart();
+        }
+        ESP_LOGW(TAG, "Left network (leave_type=%u)", leave->leave_type);
+        break;
+    }
     default:
         ESP_LOGI(TAG, "Zigbee signal=%" PRIu32 " status=%s", sig, esp_err_to_name(signal->esp_err_status));
         break;
