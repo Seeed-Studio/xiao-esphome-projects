@@ -22,7 +22,10 @@ esp32:
       CONFIG_FREERTOS_HZ: '1000'
       CONFIG_PM_USE_RTC_TIMER_REF: y
       CONFIG_XTAL_FREQ_40: y
-      CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ: '80000000'
+      # CPU frequency: use esp32.cpu_frequency (default 160MHZ). The former
+      # CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ: '80000000' line never had an effect (the symbol is
+      # derived from the CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_<N> choice) and ESPHome 2026.11.0+
+      # rejects it.
       CONFIG_PM_DFS_INIT_AUTO: n
       CONFIG_FREERTOS_USE_TICKLESS_IDLE: y
       CONFIG_PM_ENABLE: y
