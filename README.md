@@ -25,6 +25,7 @@ Welcome to the XIAO ESPHome Projects repository! This repository contains a coll
     - [Project 8: Seeed Studio MR60FDA2 60GHz mmWave Fall Detection Sensor](#project-8-seeed-studio-mr60fda2-60ghz-mmwave-fall-detection-sensor)
     - [Project 9: Seeed Studio 2 Channel Relay](#project-9-seeed-studio-2-channel-relay)
     - [Project 10: Seeed Studio 6 Channel Relay](#project-10-seeed-studio-6-channel-relay)
+    - [Project 11: XIAO ESP32-C5 Zigbee Router (ESP-IDF)](#project-11-xiao-esp32-c5-zigbee-router-esp-idf)
   - [Installation](#installation)
     - [📱 Web Installer - One-Click Firmware Installation](#-web-installer---one-click-firmware-installation)
   - [Contributing](#contributing)
@@ -101,6 +102,9 @@ Seeed Studio 2 Channel Relay is a dual-channel relay module based on XIAO ESP32-
 
 Seeed Studio 6 Channel Relay is a six-channel relay module based on XIAO ESP32-C6, designed for controlling multiple AC-powered appliances wirelessly. It supports independent control of six loads and integrates seamlessly with Home Assistant.
 
+### Project 11: XIAO ESP32-C5 Zigbee Router (ESP-IDF)
+
+An ESP-IDF Zigbee router firmware for XIAO ESP32-C5, tested with Home Assistant ZHA. This standalone native ESP-IDF project is separate from the ESPHome YAML configurations. See [the project README](projects/xiao-esp32-c5-zigbee-router/README.md) for build, flash, and test details.
 
 ## Installation
 

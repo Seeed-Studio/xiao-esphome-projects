@@ -146,3 +146,19 @@ jobs:
             --build-property "build.extra_flags=-D${{ matrix.variant }} -DESP32 -DZIGBEE_MODE_ED -DFL_NO_EXCEPT= -lesp_zb_api.ed -lzboss_stack.ed -lzboss_port.native" \
             projects/seeedstudio-iot-button/Seeed_IoT_Button_Zigbee/Seeed_IoT_Button_Zigbee.ino \
             --output-dir ./output/${{ matrix.device }}
+
+  ci-idf-zigbee-router:
+    name: Building XIAO ESP32-C5 Zigbee Router (ESP-IDF)
+    runs-on: ubuntu-26.04  # pinned explicitly: ubuntu-latest migrated to Ubuntu 26 on 2026-10-19
+    container: espressif/idf:v6.1.1
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v7
+      - name: Build Zigbee router
+        # A job container does not run the image entrypoint, so activate ESP-IDF here.
+        run: |
+          . $IDF_PATH/export.sh
+          cd projects/xiao-esp32-c5-zigbee-router
+          idf.py set-target esp32c5
+          idf.py build
