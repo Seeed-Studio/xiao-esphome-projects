@@ -22,7 +22,7 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 6.2.0
+    version: 6.1.1
 direct_dependencies:
 - espressif/esp-zboss-lib
 - espressif/esp-zigbee-lib
