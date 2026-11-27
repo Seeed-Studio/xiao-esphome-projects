@@ -26,6 +26,7 @@ Welcome to the XIAO ESPHome Projects repository! This repository contains a coll
     - [Project 9: Seeed Studio 2 Channel Relay](#project-9-seeed-studio-2-channel-relay)
     - [Project 10: Seeed Studio 6 Channel Relay](#project-10-seeed-studio-6-channel-relay)
     - [Project 11: XIAO ESP32-C5 Zigbee Router (ESP-IDF)](#project-11-xiao-esp32-c5-zigbee-router-esp-idf)
+    - [Project 12: XIAO ESP32-C5 USB OpenThread RCP (ESP-IDF)](#project-12-xiao-esp32-c5-usb-openthread-rcp-esp-idf)
   - [Installation](#installation)
     - [📱 Web Installer - One-Click Firmware Installation](#-web-installer---one-click-firmware-installation)
   - [Contributing](#contributing)
@@ -105,6 +106,10 @@ Seeed Studio 6 Channel Relay is a six-channel relay module based on XIAO ESP32-C
 ### Project 11: XIAO ESP32-C5 Zigbee Router (ESP-IDF)
 
 An ESP-IDF Zigbee router firmware for XIAO ESP32-C5, tested with Home Assistant ZHA. This standalone native ESP-IDF project is separate from the ESPHome YAML configurations. See [the project README](projects/xiao-esp32-c5-zigbee-router/README.md) for build, flash, and test details.
+
+### Project 12: XIAO ESP32-C5 USB OpenThread RCP (ESP-IDF)
+
+Native USB radio firmware for XIAO ESP32-C5, used with OpenThread Border Router on a host such as Home Assistant OS. The XIAO supplies the Thread radio; OTBR runs on the host. This standalone ESP-IDF project is separate from the ESPHome YAML configurations and web installer. See [the project README](projects/xiao-esp32-c5-openthread-rcp/README.md) for build, flash, host setup and validation details.
 
 ## Installation
 
