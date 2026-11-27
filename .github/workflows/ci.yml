@@ -64,6 +64,8 @@ jobs:
             esphome-version: stable
           - file: projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor
             esphome-version: stable
+          - file: projects/xiao-soil-moisture-monitor/zigbee/xiao-soil-zigbee
+            esphome-version: 2026.11.0
           - file: projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave
             esphome-version: stable
           - file: projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter
@@ -100,6 +102,23 @@ jobs:
         with:
           yaml-file: ${{ matrix.file }}.yaml
           version: ${{ matrix.esphome-version }}
+
+  ci-soil-logic:
+    name: Testing Zigbee soil, battery and settings logic
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run host tests
+        run: |
+          c++ -std=c++17 -Wall -Wextra -Werror \
+            projects/xiao-soil-moisture-monitor/zigbee/tests/test_soil_math.cpp \
+            -o /tmp/test-soil-math
+          /tmp/test-soil-math
+          c++ -std=c++17 -Wall -Wextra -Werror \
+            projects/xiao-soil-moisture-monitor/zigbee/tests/test_battery.cpp \
+            -o /tmp/test-soil-battery
+          /tmp/test-soil-battery
 
   ci-arduino:
     name: Building Zigbee Arduino ${{ matrix.variant }}
