@@ -1,0 +1,31 @@
+blueprint:
+  name: XIAO Soil Sensor - refresh status light
+  description: >-
+    Read the Zigbee status light color after the soil moisture state changes,
+    while the sleepy sensor is awake. Select entities from the same XIAO device.
+    This refreshes the logical HA indicator; it does not turn on the board LEDs.
+  domain: automation
+  input:
+    moisture_sensor:
+      name: Soil Moisture Relative
+      selector:
+        entity:
+          domain: sensor
+    status_light:
+      name: Soil status light
+      selector:
+        entity:
+          domain: light
+variables:
+  moisture_entity: !input moisture_sensor
+triggers:
+  - trigger: state
+    entity_id: !input moisture_sensor
+conditions:
+  - condition: template
+    value_template: "{{ is_number(states(moisture_entity)) }}"
+actions:
+  - action: homeassistant.update_entity
+    target:
+      entity_id: !input status_light
+mode: single

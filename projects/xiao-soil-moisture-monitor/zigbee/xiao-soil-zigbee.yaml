@@ -1,0 +1,296 @@
+substitutions:
+  dry_voltage: '2.75'
+  wet_voltage: '1.20'
+  battery_empty_voltage: '1.2'
+  battery_full_millivolts: '1600'
+  dry_sleep_ms: '900000'
+  almost_dry_sleep_ms: '3600000'
+  normal_sleep_ms: '28800000'
+
+esphome:
+  name: xiao-soil-zigbee
+  friendly_name: XIAO Soil Sensor
+  min_version: 2026.12.0-dev
+  on_boot:
+    priority: 600
+    then:
+      - lambda: |-
+          id(manual_read) = deep_sleep::get_wakeup_cause() == deep_sleep::WAKEUP_CAUSE_GPIO;
+      - output.turn_off: antenna_switch_enable
+      - output.turn_on: antenna_external_select
+      - script.execute: measure_and_report
+
+esp32:
+  board: seeed_xiao_esp32c6
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+
+preferences:
+  # A setting must reach NVS before the short awake window ends.
+  flash_write_interval: 0s
+
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+zigbee:
+  id: zb
+  router: false
+  sleepy: true
+  power_source: BATTERY
+  model: XIAO Soil Sensor
+  manufacturer: Seeed Studio
+  on_start:
+    then:
+      - lambda: |-
+          // Allow a commissioning window after factory reset; normal rejoin is bounded.
+          id(commissioning_mode) = ezb_bdb_is_factory_new();
+          id(join_wait_ms) = id(commissioning_mode) ? 120000 : 30000;
+          id(status_light).configure_network();
+  on_join:
+    then:
+      - logger.log: Zigbee joined or rejoined
+
+output:
+  - platform: gpio
+    id: antenna_switch_enable
+    pin: GPIO3
+  - platform: gpio
+    id: antenna_external_select
+    pin: GPIO14
+  - platform: ledc
+    id: probe_excitation
+    pin: GPIO21
+    frequency: 200kHz
+  - platform: gpio
+    id: led_red
+    pin: GPIO20
+  - platform: gpio
+    id: led_yellow
+    pin: GPIO18
+  - platform: gpio
+    id: led_green
+    pin: GPIO19
+
+sensor:
+  - platform: adc
+    id: battery_voltage
+    pin: GPIO0
+    attenuation: 12db
+    samples: 8
+    name: Battery Voltage
+    device_class: voltage
+    unit_of_measurement: V
+    cluster: power_config
+    report: enable
+    update_interval: never
+  - platform: adc
+    id: soil_voltage
+    pin: GPIO1
+    attenuation: 12db
+    name: Soil Probe Voltage
+    endpoint: 1
+    report: enable
+    update_interval: never
+    accuracy_decimals: 3
+    filters:
+      - median:
+          window_size: 5
+          send_every: 1
+          send_first_at: 1
+  - platform: template
+    id: soil_percent
+    name: Soil Moisture Relative
+    endpoint: 2
+    report: enable
+    unit_of_measurement: '%'
+    accuracy_decimals: 1
+    update_interval: never
+
+  - platform: template
+    id: battery_percent
+    name: Battery
+    device_class: battery
+    unit_of_measurement: '%'
+    cluster: power_config
+    report: enable
+    update_interval: never
+
+number:
+  - platform: template
+    id: battery_full_setting
+    name: Battery Full Voltage
+    endpoint: 4
+    report: enable
+    device_class: voltage
+    unit_of_measurement: mV
+    min_value: 1300
+    max_value: 2000
+    step: 10
+    mode: box
+    optimistic: true
+    restore_value: true
+    initial_value: ${battery_full_millivolts}
+    update_interval: never
+    on_value:
+      then:
+        - lambda: |-
+            if (x >= 1300.0f && x <= 2000.0f && std::isfinite(id(battery_voltage).state)) {
+              id(battery_percent).publish_state(soil_status_light::battery_percentage(
+                  id(battery_voltage).state, ${battery_empty_voltage}f, x / 1000.0f));
+              if (id(zb).is_joined()) id(zb).report();
+            }
+
+deep_sleep:
+  id: soil_sleep
+  sleep_duration: 15min
+  wakeup_pin:
+    number: GPIO2
+    inverted: true
+    allow_other_uses: true
+    mode: INPUT_PULLUP
+  wakeup_pin_mode: KEEP_AWAKE
+
+globals:
+  - id: measurement_valid
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: commissioning_mode
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: manual_read
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: join_wait_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '30000'
+
+script:
+  - id: measure_and_report
+    mode: restart
+    then:
+      - lambda: id(measurement_valid) = false;
+      - output.set_level:
+          id: probe_excitation
+          level: 68%
+      - delay: 1s
+      - repeat:
+          count: 10
+          then:
+            - component.update: soil_voltage
+            - delay: 200ms
+      - component.update: battery_voltage
+      - lambda: |-
+          id(battery_percent).publish_state(soil_status_light::battery_percentage(
+              id(battery_voltage).state, ${battery_empty_voltage}f, id(battery_full_setting).state / 1000.0f));
+          const float v = id(soil_voltage).state;
+          if (!std::isfinite(v)) {
+            ESP_LOGW("soil", "Invalid ADC value, retry in 15 minutes");
+            id(soil_sleep).set_sleep_duration(${dry_sleep_ms});
+            return;
+          }
+          const float pct = soil_status_light::relative_moisture(v, ${dry_voltage}f, ${wet_voltage}f);
+          if (!std::isfinite(pct)) {
+            ESP_LOGE("soil", "Invalid dry/wet calibration; skipping reports");
+            id(soil_sleep).set_sleep_duration(${dry_sleep_ms});
+            return;
+          }
+          id(measurement_valid) = true;
+          id(soil_percent).publish_state(pct);
+          const uint8_t status = static_cast<uint8_t>(soil_status_light::classify_moisture(pct));
+          id(status_light).publish_status(status);
+          const uint32_t sleep_ms = status == 3 ? ${dry_sleep_ms} :
+                                    status == 2 ? ${almost_dry_sleep_ms} : ${normal_sleep_ms};
+          id(soil_sleep).set_sleep_duration(sleep_ms);
+          ESP_LOGI("soil", "Probe %.3f V / %.1f%%, state=%s, sleep=%lu ms", v, pct,
+                   status == 3 ? "Dry" : status == 2 ? "Almost" : "Normal",
+                   (unsigned long) sleep_ms);
+          id(led_red).set_state(id(manual_read) && status == 3);
+          id(led_yellow).set_state(id(manual_read) && status == 2);
+          id(led_green).set_state(id(manual_read) && status == 1);
+      - output.turn_off: probe_excitation
+      - wait_until:
+          condition:
+            lambda: return id(zb).is_joined();
+          timeout: !lambda return id(join_wait_ms);
+      - if:
+          condition:
+            lambda: return id(zb).is_joined() && id(measurement_valid);
+          then:
+            # Give attribute updates one main-loop turn, then request both reports.
+            - delay: 100ms
+            - lambda: id(status_light).begin_receive_window();
+            - zigbee.report:
+            # Keep the indicator on for one second. A fixed, bounded receive
+            # window lets ZHA poll XY without owning the SDK raw-observer slot.
+            - delay: 1s
+            - output.turn_off: led_red
+            - output.turn_off: led_yellow
+            - output.turn_off: led_green
+            - delay: 5s
+          else:
+            - logger.log:
+                level: WARN
+                format: "Measurement invalid or join timed out; sleeping 15 minutes before retry"
+            - lambda: id(soil_sleep).set_sleep_duration(${dry_sleep_ms});
+      - output.turn_off: led_red
+      - output.turn_off: led_yellow
+      - output.turn_off: led_green
+      - if:
+          condition:
+            lambda: return id(commissioning_mode) && id(zb).is_joined();
+          then:
+            - logger.log: "Initial pairing: allowing 60 seconds for endpoint interview"
+            - delay: 60s
+            - zigbee.report:
+            - delay: 2s
+      - lambda: id(status_light).restore_polling();
+      - wait_until:
+          condition:
+            lambda: return id(status_light).polling_restored();
+          timeout: 100ms
+      - lambda: |-
+          id(manual_read) = false;
+          ESP_LOGI("soil", "Cycle complete, uptime=%lu ms; entering deep sleep", (unsigned long) millis());
+      - deep_sleep.enter: soil_sleep
+
+binary_sensor:
+  - platform: gpio
+    id: reset_button
+    internal: true
+    pin:
+      number: GPIO2
+      mode: INPUT_PULLUP
+      inverted: true
+      allow_other_uses: true
+    filters:
+      - delayed_on_off: 30ms
+    on_click:
+      - min_length: 50ms
+        max_length: 1s
+        then:
+          - lambda: id(manual_read) = true;
+          - script.execute: measure_and_report
+    on_press:
+      then:
+        - delay: 5s
+        - if:
+            condition:
+              binary_sensor.is_on: reset_button
+            then:
+              - deep_sleep.prevent: soil_sleep
+              - zigbee.factory_reset:
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [soil_status_light]
+
+soil_status_light:
+  id: status_light
+  zigbee_id: zb

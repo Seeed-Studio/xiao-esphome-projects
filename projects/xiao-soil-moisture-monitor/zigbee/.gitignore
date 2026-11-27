@@ -1,0 +1,4 @@
+.esphome/
+.venv/
+__pycache__/
+*.py[cod]

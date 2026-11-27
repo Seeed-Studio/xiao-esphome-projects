@@ -53,3 +53,11 @@ You can modify the YAML file to:
 - Adjust deep sleep and measurement intervals.
 - Add automations or additional sensors.
 - Integrate with other smart home systems.
+
+## Zigbee alternative
+
+An optional [Zigbee end-device configuration](zigbee/README.md) provides probe
+voltage, calibrated relative moisture, battery percentage, a configurable
+full-battery voltage, and a logical status-color light for ZHA.
+It uses ESPHome as the firmware build framework, without Wi-Fi or the ESPHome API.
+The Wi-Fi configuration above remains unchanged.
