@@ -1,32 +1,45 @@
 # Validation
 
-Updated 2026-11-26. Build checks, automated host tests, radio behavior, and HA
-observations are separate evidence classes. This is an experimental Zigbee
-alternative; these results do not establish production battery life.
+Updated 2026-11-27. Build/static checks, CI, radio behavior and HA observations
+are separate evidence classes. This experimental Zigbee configuration does not
+establish production battery life.
 
-## Build and host checks
+## Review revision
 
-- Repository configuration: ESPHome 2026.11.0, ESP-IDF 5.5.6,
-  esp-zigbee-lib 2.0.5, target `seeed_xiao_esp32c6`, 4 MB flash.
-- The current repository YAML with factory soil references (dry 2.75 V,
-  wet 1.20 V) compiled successfully: config hash `0xd77a23b1`.
-- The bench YAML uses measured soil references (dry 2.787 V, wet 2.072 V).
-  The final millivolt version compiled, was flashed app-only, and passed
-  esptool written-data hash verification: config hash `0xfad9a587`.
-  Both configurations use the same C++ component code.
-- C++17 host tests pass with `-Wall -Wextra -Werror`: calibration endpoints,
-  invalid input/clamping, exact 20%/40% state boundaries, malformed XY reads,
-  battery percentage/unknown encodings, and legacy volts-to-millivolts
-  conversion across all 71 settings from 1300 to 2000 mV in 10 mV steps.
-- The bundled ESPHome 2026.11.0 Zigbee snapshot differs from upstream only
-  in `zigbee_helpers_esp32.c`. Its twelve added dispatch lines are recorded
-  in `components/zigbee-2026.11.0.patch`; no other upstream code is modified.
-- A pinned ESPHome build matrix entry and soil/battery host-test CI job are
-  included. Remote CI results must be checked separately after publication.
-- Automation example and blueprint YAML were parsed and their entity/input
-  wiring checked locally. The new blueprint has not been executed in HA.
+- ESPHome development revision `5210ad79d95c66155637f5b858088b41f3a2ade4`
+  (`2026.12.0-dev`) supplies native Power Configuration support (#21725).
+- Removed the frozen Zigbee core snapshot, both hand-assembled APS report
+  paths, the global raw observer and the unpublished volts-to-mV migration.
+- The read-only color endpoint registers explicit types and access flags through
+  the generic cluster/attribute path; it does not require a core routing patch.
+- Native attributes use report ENABLE and the common `zigbee.report` action.
+  Source tracing: attribute publication schedules a value update; the entity
+  loop uses bounded SDK lock acquisition; reporting calls the official
+  `ezb_zcl_report_attr_cmd_req`. This is not a delivery acknowledgement.
+- Fixed six-second receive window; saved polling intervals are restored before
+  sleep. The requested parent timeout is set in the application component with
+  a bounded lock, not in YAML.
+- CI tracks `dev` temporarily. Return-to-stable condition is documented in
+  README and tracked in Seeed PR #78. No local core overlay or release pin.
+- Host tests: soil calibration/clamping/invalid references and exact 20%/40%
+  thresholds; battery invalid inputs, voltage-estimated percentages and all 71
+  full-voltage settings. Native ZCL scaling belongs to upstream tests.
+- Mocked application runtime tests pass: lock contention retries, original
+  polling-interval restoration (including a restarted window), and all three
+  XY color mappings. SDK mocks are not a radio or descriptor integration test.
+- Final public YAML compiled with ESP-IDF 6.1.1 / esp-zigbee-lib 2.0.5,
+  `seeed_xiao_esp32c6`, 4 MB; config hash `0xecbf2901`. Binary size is
+  572816 bytes; flash usage 572455 / 1769472 bytes, RAM 95899 / 452112 bytes.
+- The old ESPHome 2026.11.0 CLI rejected the minimum-version requirement as
+  expected. The updated native wake-cause helper avoids deprecated app APIs.
+- Development-core config validation emits a generic 0 ms schedule warning
+  (coerced to 1 ms); the YAML has no zero update intervals. Partition alignment
+  reports 124 KB slack. Neither diagnostic prevented a successful build.
+- Revised radio/HA behavior: **not flashed or bench-tested**. The historical
+  observations below are not proof that native reports, generic color
+  descriptors or the fixed receive window work on the revised image.
 
-## Hardware and HA observations
+## Historical hardware and HA observations (pre-review firmware)
 
 - Device: XIAO ESP32-C6 Soil Moisture Monitor with external antenna.
 - Initial tests: Raspberry Pi 4 / HA OS, Core 2026.11.3, ZHA 2.4.3,
@@ -59,12 +72,12 @@ alternative; these results do not establish production battery life.
 
 - ADC accuracy against a multimeter, battery current, lifetime, or a measured
   discharge curve. Battery percentage is a linear voltage estimate.
-- Power-cycle persistence and live migration of an existing volts-based NVS
-  setting. Source tracing and host math tests are not substitutes for these.
+- Power-cycle persistence of the full-voltage setting. The public revision no
+  longer migrates unpublished volts-based bench settings.
 - A controlled yellow hardware transition, 8-hour sleep/rejoin and parent
   retention, stress/loss testing, or Zigbee2MQTT compatibility.
 - The 5-second pairing-reset gesture on hardware. Source inspection confirms
-  the reset leave signal is handled by the bundled upstream Zigbee component,
+  the reset leave signal is handled by the upstream Zigbee component,
   but this gesture was not part of the bench validation.
 - Triple-press calibration: not implemented in this variant.
 - The public configuration's factory calibration defaults were build-tested;

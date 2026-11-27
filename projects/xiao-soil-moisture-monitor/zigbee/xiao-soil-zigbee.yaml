@@ -10,21 +10,12 @@ substitutions:
 esphome:
   name: xiao-soil-zigbee
   friendly_name: XIAO Soil Sensor
+  min_version: 2026.12.0-dev
   on_boot:
     priority: 600
     then:
       - lambda: |-
-          // Template number restores at priority 800, before this boot action.
-          // Migrate older firmware's saved volts to integer millivolts once.
-          const float saved_full = id(battery_full_setting).state;
-          const float full_mv = soil_battery::normalize_full_millivolts(saved_full);
-          if (saved_full != full_mv) {
-            auto call = id(battery_full_setting).make_call();
-            call.set_value(full_mv);
-            call.perform();
-          }
-          const auto cause = esp_sleep_get_wakeup_cause();
-          id(manual_read) = cause == ESP_SLEEP_WAKEUP_GPIO || cause == ESP_SLEEP_WAKEUP_EXT0 || cause == ESP_SLEEP_WAKEUP_EXT1;
+          id(manual_read) = deep_sleep::get_wakeup_cause() == deep_sleep::WAKEUP_CAUSE_GPIO;
       - output.turn_off: antenna_switch_enable
       - output.turn_on: antenna_external_select
       - script.execute: measure_and_report
@@ -55,11 +46,7 @@ zigbee:
           // Allow a commissioning window after factory reset; normal rejoin is bounded.
           id(commissioning_mode) = ezb_bdb_is_factory_new();
           id(join_wait_ms) = id(commissioning_mode) ? 120000 : 30000;
-          // Request more than 8 hours before parent aging; parent policy still applies.
-          if (esp_zigbee_lock_acquire(portMAX_DELAY)) {
-            ezb_nwk_set_ed_timeout(EZB_NWK_ED_TIMEOUT_1024MIN);
-            esp_zigbee_lock_release();
-          }
+          id(status_light).configure_network();
   on_join:
     then:
       - logger.log: Zigbee joined or rejoined
@@ -91,7 +78,11 @@ sensor:
     pin: GPIO0
     attenuation: 12db
     samples: 8
-    internal: true
+    name: Battery Voltage
+    device_class: voltage
+    unit_of_measurement: V
+    cluster: power_config
+    report: enable
     update_interval: never
   - platform: adc
     id: soil_voltage
@@ -116,6 +107,15 @@ sensor:
     accuracy_decimals: 1
     update_interval: never
 
+  - platform: template
+    id: battery_percent
+    name: Battery
+    device_class: battery
+    unit_of_measurement: '%'
+    cluster: power_config
+    report: enable
+    update_interval: never
+
 number:
   - platform: template
     id: battery_full_setting
@@ -136,9 +136,9 @@ number:
       then:
         - lambda: |-
             if (x >= 1300.0f && x <= 2000.0f && std::isfinite(id(battery_voltage).state)) {
-              id(battery_monitor).publish_voltage(id(battery_voltage).state,
-                  ${battery_empty_voltage}f, x / 1000.0f);
-              if (id(zb).is_joined()) id(battery_monitor).report();
+              id(battery_percent).publish_state(soil_status_light::battery_percentage(
+                  id(battery_voltage).state, ${battery_empty_voltage}f, x / 1000.0f));
+              if (id(zb).is_joined()) id(zb).report();
             }
 
 deep_sleep:
@@ -185,8 +185,8 @@ script:
             - delay: 200ms
       - component.update: battery_voltage
       - lambda: |-
-          id(battery_monitor).publish_voltage(id(battery_voltage).state,
-              ${battery_empty_voltage}f, id(battery_full_setting).state / 1000.0f);
+          id(battery_percent).publish_state(soil_status_light::battery_percentage(
+              id(battery_voltage).state, ${battery_empty_voltage}f, id(battery_full_setting).state / 1000.0f));
           const float v = id(soil_voltage).state;
           if (!std::isfinite(v)) {
             ESP_LOGW("soil", "Invalid ADC value, retry in 15 minutes");
@@ -225,22 +225,13 @@ script:
             - delay: 100ms
             - lambda: id(status_light).begin_receive_window();
             - zigbee.report:
-            - lambda: |-
-                id(status_light).report_status();
-                id(battery_monitor).report();
-            # Stop the physical indicator after one second; continue receiving
-            # HA reads with 100 ms parent polling until XY is read or 6 s elapses.
+            # Keep the indicator on for one second. A fixed, bounded receive
+            # window lets ZHA poll XY without owning the SDK raw-observer slot.
             - delay: 1s
             - output.turn_off: led_red
             - output.turn_off: led_yellow
             - output.turn_off: led_green
-            - wait_until:
-                condition:
-                  lambda: return id(status_light).receive_window_complete();
-                timeout: 6s
-            - lambda: |-
-                ESP_LOGI("soil.light", "Receive window ended: XY request observed=%s",
-                         id(status_light).color_read_observed() ? "yes" : "no");
+            - delay: 5s
           else:
             - logger.log:
                 level: WARN
@@ -256,10 +247,12 @@ script:
             - logger.log: "Initial pairing: allowing 60 seconds for endpoint interview"
             - delay: 60s
             - zigbee.report:
-            - lambda: |-
-                id(status_light).report_status();
-                id(battery_monitor).report();
             - delay: 2s
+      - lambda: id(status_light).restore_polling();
+      - wait_until:
+          condition:
+            lambda: return id(status_light).polling_restored();
+          timeout: 100ms
       - lambda: |-
           id(manual_read) = false;
           ESP_LOGI("soil", "Cycle complete, uptime=%lu ms; entering deep sleep", (unsigned long) millis());
@@ -296,12 +289,8 @@ external_components:
   - source:
       type: local
       path: components
-    components: [zigbee, soil_status_light, soil_battery]
+    components: [soil_status_light]
 
 soil_status_light:
   id: status_light
-  zigbee_id: zb
-
-soil_battery:
-  id: battery_monitor
   zigbee_id: zb

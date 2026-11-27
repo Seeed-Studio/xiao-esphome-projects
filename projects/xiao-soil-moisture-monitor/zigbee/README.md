@@ -14,15 +14,27 @@ The Zigbee Basic cluster identifies the product as **XIAO Soil Sensor** by
 
 ## Build and flash
 
-Use released ESPHome **2026.11.0** (ESP-IDF 5.5.6, esp-zigbee-lib 2.0.5):
+Native Power Configuration support is merged in ESPHome upstream
+[#21725](https://github.com/esphome/esphome/pull/21725), but is not in
+2026.11.1. Until the stable release includes it, use the official development
+version; this is an experimental dependency, not a frozen local core overlay.
+CI builds against `dev` to catch upstream API changes. The YAML rejects older
+releases rather than silently mixing core versions.
 
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-pip install esphome==2026.11.0
+pip install 'git+https://github.com/esphome/esphome.git@dev'
 esphome compile projects/xiao-soil-moisture-monitor/zigbee/xiao-soil-zigbee.yaml
 esphome upload projects/xiao-soil-moisture-monitor/zigbee/xiao-soil-zigbee.yaml --device /dev/ttyACM0
 ```
+
+Tracked in [Seeed PR #78](https://github.com/Seeed-Studio/xiao-esphome-projects/pull/78):
+when a stable ESPHome release includes #21725 and builds this configuration,
+change this CI entry back to `stable` and replace the temporary development
+install above with `pip install -U esphome`. Do not keep a version pin or copy
+ESPHome's Zigbee component into this project. The exact revision used for local
+validation is recorded in `VALIDATION.md`.
 
 Enter the XIAO bootloader by holding BOOT, tapping RESET, then releasing BOOT.
 After flashing from this mode, tap RESET to boot the application. The board has
@@ -70,7 +82,6 @@ full voltage = 100%, clamped outside the range. The initial full voltage is
 1600 mV (1.6 V). The **Battery Full Voltage** number allows 1300-2000 mV
 in 10 mV steps. Integer millivolts avoid float32 decimal tails in ZHA;
 its last accepted value is saved in device NVS and restored after reboot.
-Existing saved settings in volts are converted to millivolts at boot.
 ZHA may retain the previous unit and range until a new interview.
 Preferences are synchronized immediately because normal awake windows are short.
 Changing the setting recalculates the last ADC sample; it is not a new sample.
@@ -79,8 +90,8 @@ Wake the device with a short measurement-button press before changing this
 number; writes to a deeply sleeping device may time out. ZHA 2.4.3 supports
 this standard Analog Output number without a quirk. The integer-millivolt
 control and battery percentage were observed in HA after pairing. Power-cycle
-persistence and migration of a previously saved volts setting are not yet
-hardware-verified.
+persistence is not yet hardware-verified. Unpublished bench images with
+volts-based NVS values are not migrated by this public configuration.
 Adding endpoint 4 requires a fresh interview of an already cached device.
 
 GPIO0 is sampled eight times once per measurement. Power Configuration (0x0001)
@@ -112,12 +123,19 @@ Create it again with the new entity IDs, or restore it from the old HA backup.
 The trigger runs when the moisture entity changes; an unchanged reading does
 not force a refresh. Test with a reading that crosses a color threshold.
 
-After publishing moisture, this firmware polls its parent every 100 ms while
-HA reads on/off, level, then XY. A read observer leaves normal SDK handling
-intact and allows a 750 ms response drain after a request for both coordinates.
-The receive window is bounded to 6 seconds if the request is absent. Observing
-a request or enqueueing a report is **not** an acknowledgement that HA updated.
-This is a bounded compromise for a sleepy device, not a delivery guarantee.
+After publishing moisture, the firmware requests reports through
+`zigbee.report` for every registered report-enabled attribute, including the
+color coordinates and native battery sensors. There is no application APS
+frame construction, sequence counter, duplicate color packet or global raw
+ZCL observer. ESPHome owns attribute writes/report requests and its bounded
+lock acquisition. A local enqueue is not a delivery acknowledgement.
+
+For ZHA's color polling, a fixed six-second awake window polls the parent every
+100 ms. Both the previous keepalive and fast-poll intervals are saved and
+restored before sleep; all application SDK lock attempts are bounded to 10 ms
+and retried from the component loop. The fixed window replaces the old
+read-observer shortcut. This costs a little more awake time when a read arrives
+early and needs new bench validation. It is not a delivery guarantee.
 
 Normal measurement and reporting take several seconds, rather than the
 factory Wi-Fi firmware's 120-second awake period. Initial commissioning and
@@ -135,21 +153,25 @@ turn off the main-entity naming option if present, and enter `Plant Status`.
 Keep its entity ID unchanged so the refresh automation continues to work.
 Dashboard cards are also a user configuration, separate from device discovery.
 
-## Compatibility overlay
+## Implementation boundaries
 
-`components/zigbee` is the unmodified ESPHome 2026.11.0 Zigbee component **except
-for `zigbee_helpers_esp32.c`**, which adds SDK Power Configuration, Level and
-Color Control descriptor creation/attribute routing. The full version-matched
-snapshot avoids depending
-on unreleased ESPHome changes; it is intentionally scoped to this optional
-configuration and does not replace the component used by other projects.
-Upstream source and GPL-3.0 license:
-https://github.com/esphome/esphome/tree/2026.11.0/esphome/components/zigbee
+Battery percentage and voltage use native template/ADC sensors with
+`cluster: power_config` and `report: enable`. Native code handles ZCL scaling
+and reporting. The application only computes the linear percentage estimate.
+No `soil_battery` transport component or copied Zigbee core is included.
 
-`components/soil_status_light` owns the status reports and receive window. Its
-raw ZCL observer uses the SDK's single observer slot and always returns false
-so the SDK processes and responds to reads. Do not combine another component
-that takes this observer slot without explicit callback composition.
+`soil_status_light` creates a read-only Color Dimmable Light endpoint (3) for
+ZHA, using the core's existing generic cluster descriptors for Level and Color
+Control. Explicit ZCL attribute types and READ/REPORT access register these
+attributes through the supported generic attribute path. This avoids both
+patching the SDK cluster-routing helper and relying on upcoming actuator-light
+support. It intentionally does not implement light actuator commands: the
+indicator always reflects the measured soil state. ZHA may still display light
+controls, but this endpoint is not intended to control a physical lamp.
+
+The small application component also configures a 1024-minute requested parent
+aging timeout and the temporary polling window, outside the user YAML. The
+parent may impose its own policy; eight-hour sleep/rejoin needs bench testing.
 
 ## Validation
 
@@ -162,10 +184,12 @@ c++ -std=c++17 -Wall -Wextra -Werror \
   projects/xiao-soil-moisture-monitor/zigbee/tests/test_battery.cpp \
   -o /tmp/test-soil-battery
 /tmp/test-soil-battery
+python3 projects/xiao-soil-moisture-monitor/zigbee/tests/test_status_runtime.py
 ```
 
 The host test covers measured calibration samples, clamping, invalid references,
-state boundaries and parsing of the XY read request. CI also builds this
-configuration with the pinned ESPHome release. See `VALIDATION.md` for the
+state boundaries and battery clamping/invalid inputs across all full-voltage
+settings. CI also builds this configuration against the current official
+ESPHome development version until the required native support reaches stable. See `VALIDATION.md` for the
 actual hardware and Home Assistant verification status; compilation does not
 establish radio delivery or battery life.
