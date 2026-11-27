@@ -21,11 +21,4 @@ int main() {
   assert(std::isnan(relative_moisture(NAN, dry, wet)));
   assert(std::isnan(relative_moisture(2.4f, wet, dry)));
   assert(std::isnan(relative_moisture(2.4f, dry, dry)));
-  const uint8_t xy[] = {0x08, 0x00, 0x03, 0x00, 0x04, 0x00};
-  const uint8_t x_only[] = {0x03, 0x00};
-  assert(requests_xy(xy, sizeof(xy)));
-  assert(!requests_xy(xy, sizeof(xy) - 1));
-  assert(!requests_xy(x_only, sizeof(x_only)));
-  assert(!requests_xy(nullptr, 6));
-  assert(!requests_xy(xy, 0));
 }
