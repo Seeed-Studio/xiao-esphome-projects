@@ -1,0 +1,14 @@
+# Replace both entity IDs with the IDs from your installation.
+alias: XIAO soil status light refresh
+description: Read the indicator while the soil sensor is awake after a measurement.
+triggers:
+  - trigger: state
+    entity_id: sensor.replace_with_soil_moisture_relative
+conditions:
+  - condition: template
+    value_template: "{{ trigger.to_state is not none and is_number(trigger.to_state.state) }}"
+actions:
+  - action: homeassistant.update_entity
+    target:
+      entity_id: light.replace_with_soil_status_light
+mode: single
