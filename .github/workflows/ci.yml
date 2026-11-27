@@ -65,7 +65,9 @@ jobs:
           - file: projects/xiao-soil-moisture-monitor/xiao-soil-moisture-monitor
             esphome-version: stable
           - file: projects/xiao-soil-moisture-monitor/zigbee/xiao-soil-zigbee
-            esphome-version: 2026.11.0
+            # Native power_config support is merged upstream, not yet in stable.
+            # Return to stable when its release includes esphome/esphome#21725.
+            esphome-version: dev
           - file: projects/xiao_24ghz_mmwave/xiao_24ghz_mmwave
             esphome-version: stable
           - file: projects/xiao-w5500-ethernet-adapter/xiao-w5500-ethernet-adapter
@@ -119,6 +121,7 @@ jobs:
             projects/xiao-soil-moisture-monitor/zigbee/tests/test_battery.cpp \
             -o /tmp/test-soil-battery
           /tmp/test-soil-battery
+          python3 projects/xiao-soil-moisture-monitor/zigbee/tests/test_status_runtime.py
 
   ci-arduino:
     name: Building Zigbee Arduino ${{ matrix.variant }}
